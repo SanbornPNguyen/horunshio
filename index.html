@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HoRunShio</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .table-container {
+            width: 100%;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th {
+            background-color: #f2f2f2;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: bold;
+            color: #2c3e50;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f9fafc;
+        }
+        
+        table tr:hover {
+            background-color: #eef2f7;
+        }
+        
+        .chart-filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background-color: #ecf0f1;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .filter-btn:hover {
+            background-color: #bdc3c7;
+        }
+        
+        .chart-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .unit-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .unit-toggle-btn {
+            background-color: #ecf0f1;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .unit-toggle-btn:first-child {
+            border-radius: 20px 0 0 20px;
+        }
+        
+        .unit-toggle-btn:last-child {
+            border-radius: 0 20px 20px 0;
+        }
+        
+        .unit-toggle-btn.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .chart-filters {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .chart-title {
+                font-size: 1.2rem;
+            }
+        }
+        
+        .empty-time {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>HoRunShio</h1>
+        </header>
+        
+        <div class="chart-container">
+            <h2 class="chart-title">Running Performance</h2>
+            <div class="unit-toggle">
+                <button class="unit-toggle-btn active" data-unit="km">Kilometers</button>
+                <button class="unit-toggle-btn" data-unit="mi">Miles</button>
+            </div>
+            <div class="chart-filters">
+                <button class="filter-btn active" data-filter="pace">Pace</button>
+                <button class="filter-btn" data-filter="duration">Duration</button>
+            </div>
+            <canvas id="running-chart"></canvas>
+        </div>
+        
+        <div class="table-container">
+            <h2>Run Details</h2>
+            <table id="runs-table">
+                <thead>
+                    <tr>
+                        <th>Event Name</th>
+                        <th>Event Date</th>
+                        <th>Distance (km)</th>
+                        <th>Distance (mi)</th>
+                        <th>Time</th>
+                        <th>Pace (min/km)</th>
+                        <th>Pace (min/mi)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table data will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script>
+        // Run data from provided JSON
+        const runData = [
+            {
+                "event_name": "Turkey Trot 2023",
+                "event_date": "11/23/2023",
+                "distance (km)": 10.0,
+                "time (HH:MM:SS)": "1:45:14"
+            },
+            {
+                "event_name": "Turkey Trot 2024",
+                "event_date": "11/28/2024",
+                "distance (km)": 10.0,
+                "time (HH:MM:SS)": "1:36:42"
+            },
+            {
+                "event_name": "Santa Monica-Venice Christmas Run 2024",
+                "event_date": "12/14/2024",
+                "distance (km)": 10.0,
+                "time (HH:MM:SS)": "1:35:04"
+            },
+            {
+                "event_name": "LA Chinatown Firecracker 2025",
+                "event_date": "03/08/2025",
+                "distance (km)": 10.0,
+                "time (HH:MM:SS)": "1:26:01"
+            },
+            {
+                "event_name": "Santa Barbara Wine Country 2025",
+                "event_date": "5/10/2025",
+                "distance (km)": 21.1,
+                "time (HH:MM:SS)": "3:22:28"
+            }
+        ];
+        
+        // Conversion factor from km to miles
+        const KM_TO_MILES = 0.621371;
+        
+        // Process the run data to add calculated fields
+        const processedRunData = runData.map(run => {
+            const result = {
+                name: run["event_name"],
+                date: run["event_date"],
+                distanceKm: run["distance (km)"],
+                distanceMi: run["distance (km)"] * KM_TO_MILES,
+                duration: run["time (HH:MM:SS)"]
+            };
+            
+            // Calculate pace if duration exists
+            if (result.duration && result.duration.trim() !== "") {
+                // Parse duration (HH:MM:SS)
+                const timeParts = result.duration.split(':').map(Number);
+                let totalSeconds;
+                
+                if (timeParts.length === 3) {
+                    totalSeconds = timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2];
+                } else if (timeParts.length === 2) {
+                    totalSeconds = timeParts[0] * 60 + timeParts[1];
+                } else {
+                    totalSeconds = timeParts[0];
+                }
+                
+                // Calculate pace in minutes per km
+                const paceInSecondsKm = totalSeconds / result.distanceKm;
+                const paceMinutesKm = Math.floor(paceInSecondsKm / 60);
+                const paceSecondsKm = Math.round(paceInSecondsKm % 60);
+                
+                // Calculate pace in minutes per mile
+                const paceInSecondsMi = totalSeconds / result.distanceMi;
+                const paceMinutesMi = Math.floor(paceInSecondsMi / 60);
+                const paceSecondsMi = Math.round(paceInSecondsMi % 60);
+                
+                result.paceKm = `${paceMinutesKm}:${paceSecondsKm.toString().padStart(2, '0')}`;
+                result.paceDecimalKm = paceMinutesKm + (paceSecondsKm / 60); // For chart use
+                
+                result.paceMi = `${paceMinutesMi}:${paceSecondsMi.toString().padStart(2, '0')}`;
+                result.paceDecimalMi = paceMinutesMi + (paceSecondsMi / 60); // For chart use
+                
+                // Also store total seconds for chart use
+                result.durationSeconds = totalSeconds;
+                result.durationHours = totalSeconds / 3600; // For chart use
+            } else {
+                result.paceKm = "";
+                result.paceDecimalKm = null;
+                result.paceMi = "";
+                result.paceDecimalMi = null;
+                result.durationSeconds = null;
+                result.durationHours = null;
+            }
+            
+            return result;
+        });
+        
+        // Function to populate the table
+        function populateTable() {
+            const tableBody = document.querySelector('#runs-table tbody');
+            tableBody.innerHTML = '';
+            
+            // Sort runs by date, newest first
+            const sortedRuns = [...processedRunData].sort((a, b) => {
+                // Parse dates in MM/DD/YYYY format
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA;
+            });
+            
+            // Use document fragment for better performance
+            const fragment = document.createDocumentFragment();
+            
+            sortedRuns.forEach(run => {
+                const row = document.createElement('tr');
+                
+                const nameCell = document.createElement('td');
+                nameCell.textContent = run.name;
+                
+                const dateCell = document.createElement('td');
+                dateCell.textContent = run.date;
+                
+                const distanceKmCell = document.createElement('td');
+                distanceKmCell.textContent = `${run.distanceKm.toFixed(1)} km`;
+                
+                const distanceMiCell = document.createElement('td');
+                distanceMiCell.textContent = `${run.distanceMi.toFixed(2)} mi`;
+                
+                const timeCell = document.createElement('td');
+                if (run.duration && run.duration.trim() !== "") {
+                    timeCell.textContent = run.duration;
+                } else {
+                    timeCell.textContent = "Not completed";
+                    timeCell.classList.add('empty-time');
+                }
+                
+                const paceKmCell = document.createElement('td');
+                if (run.paceKm && run.paceKm.trim() !== "") {
+                    paceKmCell.textContent = `${run.paceKm} min/km`;
+                } else {
+                    paceKmCell.textContent = "-";
+                    paceKmCell.classList.add('empty-time');
+                }
+                
+                const paceMiCell = document.createElement('td');
+                if (run.paceMi && run.paceMi.trim() !== "") {
+                    paceMiCell.textContent = `${run.paceMi} min/mi`;
+                } else {
+                    paceMiCell.textContent = "-";
+                    paceMiCell.classList.add('empty-time');
+                }
+                
+                row.appendChild(nameCell);
+                row.appendChild(dateCell);
+                row.appendChild(distanceKmCell);
+                row.appendChild(distanceMiCell);
+                row.appendChild(timeCell);
+                row.appendChild(paceKmCell);
+                row.appendChild(paceMiCell);
+                
+                fragment.appendChild(row);
+            });
+            
+            // Add all rows at once
+            tableBody.appendChild(fragment);
+        }
+        
+        // Optimized chart variable
+        let chartInstance = null;
+        
+        // Current unit and filter settings
+        let currentUnit = 'km';
+        let currentFilter = 'pace';
+        
+        // Function to create and update the chart
+        function createChart(filter = 'pace', unit = 'km') {
+            const canvas = document.getElementById('running-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Save current settings
+            currentFilter = filter;
+            currentUnit = unit;
+            
+            // If chart exists, destroy it to redraw
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            // Filter out runs without time data for the chart
+            const completedRuns = processedRunData.filter(run => 
+                run.durationSeconds !== null && 
+                ((unit === 'km' && run.paceDecimalKm !== null) || 
+                 (unit === 'mi' && run.paceDecimalMi !== null))
+            );
+            
+            // Sort runs by date for the chart (oldest to newest)
+            const sortedRuns = [...completedRuns].sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateA - dateB;
+            });
+            
+            // Pre-calculate all data sets
+            const chartData = {
+                labels: sortedRuns.map(run => run.name),
+                datasets: {
+                    pace: {
+                        data: unit === 'km' ? 
+                              sortedRuns.map(run => run.paceDecimalKm) : 
+                              sortedRuns.map(run => run.paceDecimalMi),
+                        label: unit === 'km' ? 'Pace (min/km)' : 'Pace (min/mi)',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: 'rgba(52, 152, 219, 1)'
+                    },
+                    duration: {
+                        data: sortedRuns.map(run => run.durationHours),
+                        label: 'Duration (hours)',
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        borderColor: 'rgba(231, 76, 60, 1)'
+                    }
+                }
+            };
+            
+            // Get selected dataset
+            const selectedDataset = chartData.datasets[filter];
+            
+            // Performance optimization config
+            const chartConfig = {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: selectedDataset.label,
+                        data: selectedDataset.data,
+                        backgroundColor: selectedDataset.backgroundColor,
+                        borderColor: selectedDataset.borderColor,
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointBackgroundColor: selectedDataset.borderColor,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 300 // Faster animations
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.1 // Lower tension for better performance
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: filter !== 'pace',
+                            ticks: {
+                                // Limit decimals for better performance
+                                maxTicksLimit: 8
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                // Display fewer labels on small screens
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 10
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let value = context.raw;
+                                    
+                                    if (filter === 'pace') {
+                                        const minutes = Math.floor(value);
+                                        const seconds = Math.round((value - minutes) * 60);
+                                        return `Pace: ${minutes}:${seconds.toString().padStart(2, '0')} min/${unit}`;
+                                    } else { // duration
+                                        const hours = Math.floor(value);
+                                        const minutes = Math.floor((value - hours) * 60);
+                                        const seconds = Math.round(((value - hours) * 60 - minutes) * 60);
+                                        return `Duration: ${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    devicePixelRatio: 1.5,
+                    hover: {
+                        animationDuration: 0
+                    }
+                }
+            };
+            
+            // Create chart with optimized configuration
+            chartInstance = new Chart(ctx, chartConfig);
+        }
+        
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', () => {
+            // Use requestAnimationFrame for smoother rendering
+            requestAnimationFrame(() => {
+                populateTable();
+                
+                // Delay chart creation to ensure page is rendered first
+                setTimeout(() => {
+                    createChart('pace', 'km');
+                    
+                    // Set up filter buttons with debounce
+                    const filterButtons = document.querySelectorAll('.filter-btn');
+                    const unitButtons = document.querySelectorAll('.unit-toggle-btn');
+                    let debounceTimeout;
+                    
+                    filterButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            // Debounce to prevent rapid clicking
+                            clearTimeout(debounceTimeout);
+                            debounceTimeout = setTimeout(() => {
+                                filterButtons.forEach(btn => btn.classList.remove('active'));
+                                button.classList.add('active');
+                                createChart(button.dataset.filter, currentUnit);
+                            }, 100);
+                        });
+                    });
+                    
+                    unitButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            // Debounce to prevent rapid clicking
+                            clearTimeout(debounceTimeout);
+                            debounceTimeout = setTimeout(() => {
+                                unitButtons.forEach(btn => btn.classList.remove('active'));
+                                button.classList.add('active');
+                                createChart(currentFilter, button.dataset.unit);
+                            }, 100);
+                        });
+                    });
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>

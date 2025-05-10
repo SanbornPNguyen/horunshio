@@ -1,0 +1,32 @@
+[
+	{
+		"event_name": "Turkey Trot 2023",
+		"event_date": "11/23/2023",
+		"distance (km)": 10.0,
+		"time (HH:MM:SS)": "1:45:14"
+	},
+	{
+		"event_name": "Turkey Trot 2024",
+		"event_date": "11/28/2024",
+		"distance (km)": 10.0,
+		"time (HH:MM:SS)": "1:36:42"
+	},
+	{
+		"event_name": "Santa Monica-Venice Christmas Run 2024",
+		"event_date": "12/14/2024",
+		"distance (km)": 10.0,
+		"time (HH:MM:SS)": "1:35:04"
+	},
+	{
+		"event_name": "LA Chinatown Firecracker 2025",
+		"event_date": "03/08/2025",
+		"distance (km)": 10.0,
+		"time (HH:MM:SS)": "1:26:01"
+	},
+	{
+		"event_name": "Santa Barbara Wine Country 2025",
+		"event_date": "5/10/2025",
+		"distance (km)": 21.1,
+		"time (HH:MM:SS)": "3:22:38"
+	},
+]
