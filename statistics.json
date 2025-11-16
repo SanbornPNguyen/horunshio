@@ -46,5 +46,11 @@
 		"event_date": "09/27/2025",
 		"distance (km)": 10,
 		"time (HH:MM:SS)": "1:36:54"
+	},
+	{
+		"event_name": "Malibu Run",
+		"event_date": "11/16/2025",
+		"distance (km)": 21.1,
+		"time (HH:MM:SS)": "3:28:10"
 	}
 ]
