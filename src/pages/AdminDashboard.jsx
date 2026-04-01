@@ -138,23 +138,9 @@ export default function AdminDashboard() {
                     <label>Name</label>
                     <input
                       type="text"
-                      placeholder="Jane"
+                      placeholder="Jane Smith"
                       value={newRunner.name}
-                      onChange={e => {
-                        const name = e.target.value
-                        setNewRunner(r => ({ name, slug: r.slug || autoSlug(name) }))
-                        setRunnerError('')
-                      }}
-                      required
-                    />
-                  </div>
-                  <div className="field" style={{ margin: 0 }}>
-                    <label>Slug</label>
-                    <input
-                      type="text"
-                      placeholder="jane"
-                      value={newRunner.slug}
-                      onChange={e => { setNewRunner(r => ({ ...r, slug: e.target.value })); setRunnerError('') }}
+                      onChange={e => { setNewRunner({ name: e.target.value, slug: autoSlug(e.target.value) }); setRunnerError('') }}
                       required
                     />
                   </div>

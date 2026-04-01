@@ -12,7 +12,8 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query
-  const { action } = req.body // 'approve' | 'reject'
+  const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+  const { action } = body ?? {}
 
   if (!['approve', 'reject'].includes(action)) {
     return res.status(400).json({ error: 'action must be approve or reject' })

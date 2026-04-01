@@ -54,7 +54,7 @@ export default function Home() {
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', flexWrap: 'wrap', flex: 1, justifyContent: 'space-between' }}>
             <h1 className="logo">Ho<span>Run</span>Shio</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
-              {!loading && runs.length > 0 && <StatsHeader stats={stats} />}
+              {!loading && runs.length > 0 && <StatsHeader stats={stats} variant="header" />}
               <Link to="/submit" className="nav-link primary" style={{ marginLeft: '12px', flexShrink: 0 }}>Submit a Run</Link>
             </div>
           </div>
@@ -74,7 +74,7 @@ export default function Home() {
 
         {!loading && runs.length > 0 && (
           <>
-            <StatsHeader stats={stats} />
+            <StatsHeader stats={stats} variant="main" />
 
             <div ref={chartRef}>
               <PaceChart

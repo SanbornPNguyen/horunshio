@@ -53,7 +53,7 @@ export default function Submit() {
         date: form.date,
         km: parseFloat(form.km),
         timeSeconds,
-        link: form.link.trim() || undefined,
+        link: form.link.trim(),
       })
       setSubmitted(true)
     } catch (err) {
@@ -149,12 +149,13 @@ export default function Submit() {
             </div>
 
             <div className="field">
-              <label>Link <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+              <label>Link</label>
               <input
                 type="url"
                 placeholder="https://www.strava.com/activities/..."
                 value={form.link}
                 onChange={e => set('link', e.target.value)}
+                required
               />
               <div className="hint">Strava, Garmin, or any race result link</div>
             </div>
