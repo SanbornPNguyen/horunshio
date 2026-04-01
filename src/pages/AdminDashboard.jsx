@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getPendingSubmissions, reviewSubmission, createRunner, getRunners, adminLogout } from '../lib/api.js'
-import { formatTime, formatPace, formatDate } from '../lib/utils.js'
+import { getPendingSubmissions, reviewSubmission, createRunner, getRunners, adminLogout, adminAddRun } from '../lib/api.js'
+import { formatTime, formatPace, formatDate, parseTimeStr } from '../lib/utils.js'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState('submissions')
+  const [tab, setTab] = useState('add-run')
   const [submissions, setSubmissions] = useState([])
   const [runners, setRunners] = useState([])
   const [loading, setLoading] = useState(true)
-  const [reviewing, setReviewing] = useState({}) // id → 'approve'|'reject'
+  const [reviewing, setReviewing] = useState({})
   const [newRunner, setNewRunner] = useState({ name: '', slug: '' })
   const [runnerError, setRunnerError] = useState('')
   const [runnerSuccess, setRunnerSuccess] = useState('')
@@ -80,11 +80,14 @@ export default function AdminDashboard() {
 
       <div className="admin-page">
         <h2>Admin Dashboard</h2>
-        <p className="subtitle">Review submitted runs and manage runners.</p>
+        <p className="subtitle">Add runs, review submissions, and manage runners.</p>
 
         <div className="admin-tabs">
+          <button className={`admin-tab${tab === 'add-run' ? ' active' : ''}`} onClick={() => setTab('add-run')}>
+            Add Run
+          </button>
           <button className={`admin-tab${tab === 'submissions' ? ' active' : ''}`} onClick={() => setTab('submissions')}>
-            Pending Submissions {submissions.length > 0 && `(${submissions.length})`}
+            Pending {submissions.length > 0 && `(${submissions.length})`}
           </button>
           <button className={`admin-tab${tab === 'runners' ? ' active' : ''}`} onClick={() => setTab('runners')}>
             Runners
@@ -92,6 +95,10 @@ export default function AdminDashboard() {
         </div>
 
         {loading && <div className="loading">Loading…</div>}
+
+        {!loading && tab === 'add-run' && (
+          <AddRunForm runners={runners} onAdded={() => {}} onUnauthorized={() => navigate('/admin')} />
+        )}
 
         {!loading && tab === 'submissions' && (
           <>
@@ -155,6 +162,126 @@ export default function AdminDashboard() {
   )
 }
 
+function AddRunForm({ runners, onAdded, onUnauthorized }) {
+  const emptyForm = { runnerId: '', eventName: '', date: '', km: '', timeStr: '', link: '' }
+  const [form, setForm] = useState(emptyForm)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    if (runners.length && !form.runnerId) {
+      setForm(f => ({ ...f, runnerId: String(runners[0].id) }))
+    }
+  }, [runners]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })); setError('') }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (!/^\d+:\d{2}(:\d{2})?$/.test(form.timeStr.trim())) {
+      setError('Time must be in H:MM:SS or MM:SS format (e.g. 1:26:01)')
+      return
+    }
+
+    const timeSeconds = parseTimeStr(form.timeStr.trim())
+    if (!timeSeconds || timeSeconds <= 0) { setError('Invalid time value'); return }
+
+    setSubmitting(true)
+    try {
+      await adminAddRun({
+        runnerId: form.runnerId,
+        eventName: form.eventName.trim(),
+        date: form.date,
+        km: parseFloat(form.km),
+        timeSeconds,
+        link: form.link.trim() || null,
+      })
+      setSuccess(`"${form.eventName.trim()}" added successfully!`)
+      setForm(f => ({ ...emptyForm, runnerId: f.runnerId }))
+      onAdded()
+    } catch (err) {
+      if (err.message === 'Unauthorized') onUnauthorized()
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form className="form-card" onSubmit={handleSubmit} style={{ maxWidth: '560px' }}>
+      {error && <div className="error-msg">{error}</div>}
+      {success && <div style={{ background: 'var(--greenbg)', color: 'var(--green)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }}>{success}</div>}
+
+      <div className="field">
+        <label>Runner</label>
+        <select value={form.runnerId} onChange={e => set('runnerId', e.target.value)} required>
+          {runners.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>
+      </div>
+
+      <div className="field">
+        <label>Event Name</label>
+        <input
+          type="text"
+          placeholder="e.g. Turkey Trot 2025"
+          value={form.eventName}
+          onChange={e => set('eventName', e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="field-row">
+        <div className="field">
+          <label>Date</label>
+          <input type="date" value={form.date} onChange={e => set('date', e.target.value)} required />
+        </div>
+        <div className="field">
+          <label>Distance (km)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.1"
+            placeholder="10.0"
+            value={form.km}
+            onChange={e => set('km', e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="field">
+        <label>Finish Time</label>
+        <input
+          type="text"
+          placeholder="1:26:01"
+          value={form.timeStr}
+          onChange={e => set('timeStr', e.target.value)}
+          required
+        />
+        <div className="hint">Format: H:MM:SS (e.g. 1:26:01 or 58:30)</div>
+      </div>
+
+      <div className="field">
+        <label>Link <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+        <input
+          type="url"
+          placeholder="https://www.strava.com/activities/..."
+          value={form.link}
+          onChange={e => set('link', e.target.value)}
+        />
+      </div>
+
+      <button className="btn-primary" type="submit" disabled={submitting}>
+        {submitting ? 'Adding…' : 'Add Run'}
+      </button>
+    </form>
+  )
+}
+
 function SubmissionCard({ sub, reviewing, onReview }) {
   const km = parseFloat(sub.km)
   const mi = km * 0.621371
@@ -189,18 +316,10 @@ function SubmissionCard({ sub, reviewing, onReview }) {
       </div>
 
       <div className="submission-actions">
-        <button
-          className="btn-approve"
-          disabled={!!reviewing}
-          onClick={() => onReview(sub.id, 'approve')}
-        >
+        <button className="btn-approve" disabled={!!reviewing} onClick={() => onReview(sub.id, 'approve')}>
           {reviewing === 'approve' ? 'Approving…' : '✓ Approve'}
         </button>
-        <button
-          className="btn-reject"
-          disabled={!!reviewing}
-          onClick={() => onReview(sub.id, 'reject')}
-        >
+        <button className="btn-reject" disabled={!!reviewing} onClick={() => onReview(sub.id, 'reject')}>
           {reviewing === 'reject' ? 'Rejecting…' : '✕ Reject'}
         </button>
       </div>

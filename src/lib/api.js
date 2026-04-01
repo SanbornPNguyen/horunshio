@@ -66,6 +66,20 @@ export async function reviewSubmission(id, action) {
   return res.json()
 }
 
+export async function adminAddRun(data) {
+  const res = await fetch(`${BASE}/admin/runs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  })
+  if (res.status === 401) throw new Error('Unauthorized')
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Failed to add run')
+  }
+  return res.json()
+}
+
 export async function createRunner(name, slug) {
   const res = await fetch(`${BASE}/admin/runners`, {
     method: 'POST',

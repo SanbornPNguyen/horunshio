@@ -56,6 +56,7 @@ export default function Home() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
               {!loading && runs.length > 0 && <StatsHeader stats={stats} variant="header" />}
               <Link to="/submit" className="nav-link primary" style={{ marginLeft: '12px', flexShrink: 0 }}>Submit a Run</Link>
+              <Link to="/admin" className="nav-link" style={{ flexShrink: 0 }}>Admin</Link>
             </div>
           </div>
         </div>
