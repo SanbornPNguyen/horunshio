@@ -21,8 +21,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 
 /* RUNNER SELECTOR */
 .runner-selector{background:var(--surface);border-bottom:1px solid var(--border)}
-.runner-selector-in{max-width:960px;margin:0 auto;padding:0 20px;display:flex;gap:0;align-items:center;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
-.runner-selector-in::-webkit-scrollbar{display:none}
+.runner-selector-in{max-width:960px;margin:0 auto;padding:0 20px;display:flex;gap:0;align-items:center;flex-wrap:wrap}
 .runner-tab{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:12px 18px;border:none;background:transparent;color:var(--ink3);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;flex-shrink:0}
 .runner-tab:hover{color:var(--ink)}
 .runner-tab.active{color:var(--ink);border-bottom-color:var(--orange)}
