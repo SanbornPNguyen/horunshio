@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import Home from './pages/Home.jsx'
 import Submit from './pages/Submit.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
+      <Analytics />
     </BrowserRouter>
   )
 }
