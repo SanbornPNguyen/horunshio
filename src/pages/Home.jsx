@@ -4,6 +4,8 @@ import { getRunners, getRuns } from '../lib/api.js'
 import { processRuns, computeStats } from '../lib/utils.js'
 import RunnerSelector from '../components/RunnerSelector.jsx'
 import StatsHeader from '../components/StatsHeader.jsx'
+import PRCards from '../components/PRCards.jsx'
+import FilterBar from '../components/FilterBar.jsx'
 import PaceChart from '../components/PaceChart.jsx'
 import RacePanel from '../components/RacePanel.jsx'
 import RaceTable from '../components/RaceTable.jsx'
@@ -17,6 +19,9 @@ export default function Home() {
   const [runs, setRuns] = useState([])
   const [selIdx, setSelIdx] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [filterYear, setFilterYear] = useState(null)
+  const [filterDist, setFilterDist] = useState(null)
+  const [unit, setUnit] = useState('km')
   const chartRef = useRef(null)
 
   useEffect(() => {
@@ -30,6 +35,8 @@ export default function Home() {
     if (!activeSlug) return
     setLoading(true)
     setSelIdx(null)
+    setFilterYear(null)
+    setFilterDist(null)
     getRuns(activeSlug).then(raw => {
       setRuns(processRuns(raw))
       setLoading(false)
@@ -41,26 +48,42 @@ export default function Home() {
 
   function handleSelect(idx) {
     setSelIdx(idx)
-    // Scroll chart into view
     if (chartRef.current) {
       chartRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
 
+  function handleYearChange(y) {
+    setFilterYear(y)
+    setSelIdx(null)
+  }
+
+  function handleDistChange(d) {
+    setFilterDist(d)
+    setSelIdx(null)
+  }
+
+  // All-time stats and PRs always use the full runs list
   const stats = computeStats(runs)
+
+  // Chart + table + panel use the filtered subset
+  const displayedRuns = runs.filter(r => {
+    if (filterYear && r.year !== filterYear) return false
+    if (filterDist && r.distLabel !== filterDist) return false
+    return true
+  })
+
+  const activeRunner = runners.find(r => r.slug === activeSlug)
 
   return (
     <>
       <header className="hdr">
         <div className="hdr-in">
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', flexWrap: 'wrap', flex: 1, justifyContent: 'space-between' }}>
-            <h1 className="logo">Ho<span>Run</span>Shio</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
-              {!loading && runs.length > 0 && <StatsHeader stats={stats} variant="header" />}
-              <Link to="/submit" className="nav-link primary" style={{ marginLeft: '12px', flexShrink: 0 }}>Submit a Run</Link>
-              <Link to="/admin" className="nav-link" style={{ flexShrink: 0 }}>Admin</Link>
-              <ThemeSelector />
-            </div>
+          <h1 className="logo">Ho<span>Run</span>Shio</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
+            <Link to="/submit" className="nav-link primary" style={{ flexShrink: 0 }}>Submit a Run</Link>
+            <Link to="/admin" className="nav-link" style={{ flexShrink: 0 }}>Admin</Link>
+            <ThemeSelector />
           </div>
         </div>
       </header>
@@ -83,33 +106,80 @@ export default function Home() {
 
         {!loading && runs.length > 0 && (
           <>
-            <StatsHeader stats={stats} variant="main" />
+            {/* ── Stats ─────────────────────────────────────────── */}
+            <StatsHeader stats={stats} />
 
-            <div ref={chartRef}>
-              <PaceChart
-                runs={runs}
-                selIdx={selIdx}
-                onSelect={handleSelect}
-                onClose={() => setSelIdx(null)}
-              />
-            </div>
+            {/* ── Personal Records ──────────────────────────────── */}
+            <PRCards prs={stats.prs} />
 
-            <RacePanel
+            {/* ── Filters ───────────────────────────────────────── */}
+            <FilterBar
               runs={runs}
-              selIdx={selIdx}
-              onClose={() => setSelIdx(null)}
-              onNavigate={handleSelect}
+              filterYear={filterYear}
+              filterDist={filterDist}
+              onYearChange={handleYearChange}
+              onDistChange={handleDistChange}
             />
 
-            <div className="srow">
-              <span className="stitle">Race Log</span>
-              <span style={{ fontSize: '12px', color: 'var(--ink3)' }}>
-                {runs.length} races · click column to sort
-              </span>
-            </div>
+            {/* ── Chart ─────────────────────────────────────────── */}
+            {(filterYear || filterDist) && (
+              <div className="filter-context">
+                {[
+                  filterDist,
+                  filterYear,
+                  displayedRuns.length > 0
+                    ? `${displayedRuns.length} race${displayedRuns.length !== 1 ? 's' : ''}`
+                    : null,
+                ].filter(Boolean).join(' · ')}
+                <button
+                  className="filter-clear"
+                  onClick={() => { handleYearChange(null); handleDistChange(null) }}
+                >
+                  ✕ Clear
+                </button>
+              </div>
+            )}
 
-            <RaceTable runs={runs} selIdx={selIdx} onSelect={handleSelect} />
-            <MobileCards runs={runs} selIdx={selIdx} onSelect={handleSelect} />
+            {displayedRuns.length === 0 ? (
+              <div className="empty-state" style={{ padding: '40px 0' }}>
+                <p>No races match the current filter.</p>
+              </div>
+            ) : (
+              <>
+                <div ref={chartRef}>
+                  <PaceChart
+                    runs={displayedRuns}
+                    selIdx={selIdx}
+                    onSelect={handleSelect}
+                    onClose={() => setSelIdx(null)}
+                    unit={unit}
+                    onUnitChange={setUnit}
+                  />
+                </div>
+
+                <RacePanel
+                  runs={displayedRuns}
+                  selIdx={selIdx}
+                  onClose={() => setSelIdx(null)}
+                  onNavigate={handleSelect}
+                  unit={unit}
+                />
+
+                <RaceTable
+                  runs={displayedRuns}
+                  selIdx={selIdx}
+                  onSelect={handleSelect}
+                  unit={unit}
+                />
+
+                <MobileCards
+                  runs={displayedRuns}
+                  selIdx={selIdx}
+                  onSelect={handleSelect}
+                  unit={unit}
+                />
+              </>
+            )}
           </>
         )}
       </main>

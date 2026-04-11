@@ -1,14 +1,14 @@
 import { formatTime, formatPace, getDelta } from '../lib/utils.js'
 
-export default function MobileCards({ runs, selIdx, onSelect }) {
+export default function MobileCards({ runs, selIdx, onSelect, unit = 'km' }) {
   const sorted = [...runs].sort((a, b) => b.dateObj - a.dateObj)
 
   return (
     <div className="log-cards">
       {sorted.map((run, i) => {
         const idx = runs.indexOf(run)
-        const delta = getDelta(run)
-        const isHalf = run.km > 15
+        const delta = getDelta(run, unit)
+        const pace = unit === 'mi' ? run.paceMi : run.paceKm
         return (
           <div
             key={run.id}
@@ -17,11 +17,14 @@ export default function MobileCards({ runs, selIdx, onSelect }) {
             onClick={() => onSelect(idx)}
           >
             <div className="lcard-top">
-              <div>
-                <div className="lcard-name">{run.eventName}</div>
-                <div className="lcard-date">{run.displayDate}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="lcard-name">
+                  {run.isPR && <span className="pr-star" title="Personal Record">★ </span>}
+                  {run.eventName}
+                </div>
+                <div className="lcard-date">{run.displayDate} · {run.year}</div>
               </div>
-              <span className={`dbadge ${isHalf ? 'dhalf' : 'd10'}`}>{isHalf ? '21.1' : '10'}km</span>
+              <span className={`dbadge ${run.distClass}`}>{run.distLabel}</span>
             </div>
             <div className="lcard-body">
               <div>
@@ -29,8 +32,8 @@ export default function MobileCards({ runs, selIdx, onSelect }) {
                 <div className="lm-v" style={{ fontSize: '12px' }}>{formatTime(run.secs)}</div>
               </div>
               <div>
-                <div className="lm-l">Pace /km</div>
-                <div className="lm-v">{formatPace(run.paceKm)}</div>
+                <div className="lm-l">Pace /{unit}</div>
+                <div className="lm-v">{formatPace(pace)}</div>
               </div>
               <div>
                 <div className="lm-l">vs Prev</div>
