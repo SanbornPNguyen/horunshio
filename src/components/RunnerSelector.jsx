@@ -1,4 +1,4 @@
-export default function RunnerSelector({ runners, activeSlug, onChange }) {
+export default function RunnerSelector({ runners, activeSlug, onChange, compareActive, onCompare }) {
   if (!runners.length) return null
   return (
     <div className="runner-selector">
@@ -12,6 +12,14 @@ export default function RunnerSelector({ runners, activeSlug, onChange }) {
             {r.name}
           </button>
         ))}
+        {onCompare && (
+          <button
+            className={`runner-tab compare-tab${compareActive ? ' active' : ''}`}
+            onClick={onCompare}
+          >
+            Compare
+          </button>
+        )}
       </div>
     </div>
   )

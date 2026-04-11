@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { adminLogin } from '../lib/api.js'
 
 export default function AdminLogin() {
@@ -33,6 +33,7 @@ export default function AdminLogin() {
       <div className="admin-page">
         <h2>Admin Login</h2>
         <p className="subtitle">Sign in to review submitted runs.</p>
+        <Link to="/" className="nav-link back-link">← Back to Home</Link>
 
         <form className="login-card" onSubmit={handleSubmit}>
           {error && <div className="error-msg">{error}</div>}

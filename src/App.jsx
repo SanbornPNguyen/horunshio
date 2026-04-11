@@ -4,6 +4,7 @@ import Home from './pages/Home.jsx'
 import Submit from './pages/Submit.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
+import Compare from './pages/Compare.jsx'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/submit" element={<Submit />} />
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/compare" element={<Compare />} />
       </Routes>
       <Analytics />
     </BrowserRouter>

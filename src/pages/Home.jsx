@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getRunners, getRuns } from '../lib/api.js'
 import { processRuns, computeStats } from '../lib/utils.js'
 import RunnerSelector from '../components/RunnerSelector.jsx'
@@ -10,6 +10,7 @@ import RaceTable from '../components/RaceTable.jsx'
 import MobileCards from '../components/MobileCards.jsx'
 
 export default function Home() {
+  const navigate = useNavigate()
   const [runners, setRunners] = useState([])
   const [activeSlug, setActiveSlug] = useState(null)
   const [runs, setRuns] = useState([])
@@ -62,7 +63,12 @@ export default function Home() {
         </div>
       </header>
 
-      <RunnerSelector runners={runners} activeSlug={activeSlug} onChange={slug => setActiveSlug(slug)} />
+      <RunnerSelector
+        runners={runners}
+        activeSlug={activeSlug}
+        onChange={slug => setActiveSlug(slug)}
+        onCompare={() => navigate('/compare')}
+      />
 
       <main className="main">
         {loading && <div className="loading">Loading…</div>}
