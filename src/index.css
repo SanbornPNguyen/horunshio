@@ -6,11 +6,46 @@
   --green:#1A9457;--greenbg:#E8F7F0;
   --red:#C93333;--redbg:#FBEAEA;
   --r:14px;
+  --hdr-bg:#1A1410;
+  --input-bg:#fff;
+}
+
+/* ── NIGHT RUN ────────────────────────────────── */
+[data-theme="night"]{
+  --orange:#FF7340;--ol:rgba(255,115,64,.15);--cream:#0D1117;
+  --ink:#CDD9E5;--ink2:#768390;--ink3:#545D68;
+  --surface:#1C2128;--border:rgba(205,217,229,.07);--border2:rgba(205,217,229,.13);
+  --green:#3FB950;--greenbg:rgba(63,185,80,.1);
+  --red:#F85149;--redbg:rgba(248,81,73,.1);
+  --hdr-bg:#010409;
+  --input-bg:#2D333B;
+}
+
+/* ── PACIFIC ──────────────────────────────────── */
+[data-theme="ocean"]{
+  --orange:#0096C7;--ol:#CAF0F8;--cream:#F0F9FF;
+  --ink:#03045E;--ink2:#023E8A;--ink3:#4895EF;
+  --surface:#fff;--border:rgba(0,119,182,.09);--border2:rgba(0,119,182,.16);
+  --green:#0A9396;--greenbg:#E0F7FA;
+  --red:#C93333;--redbg:#FBEAEA;
+  --hdr-bg:#03045E;
+  --input-bg:#fff;
+}
+
+/* ── TRAIL ────────────────────────────────────── */
+[data-theme="trail"]{
+  --orange:#40916C;--ol:#D8F3DC;--cream:#F6FBF7;
+  --ink:#1B4332;--ink2:#2D6A4F;--ink3:#74C69D;
+  --surface:#fff;--border:rgba(27,67,50,.08);--border2:rgba(27,67,50,.16);
+  --green:#40916C;--greenbg:#D8F3DC;
+  --red:#C93333;--redbg:#FBEAEA;
+  --hdr-bg:#1B4332;
+  --input-bg:#fff;
 }
 body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;-webkit-tap-highlight-color:transparent}
 
 /* HEADER */
-.hdr{background:var(--ink);padding:0 20px}
+.hdr{background:var(--hdr-bg);padding:0 20px}
 .hdr-in{max-width:960px;margin:0 auto;padding:28px 0 24px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,11vw,84px);line-height:1;color:#fff;letter-spacing:.02em}
 .logo span{color:var(--orange)}
@@ -136,7 +171,7 @@ tbody tr,.lcard{animation:fadeUp .3s ease both}
 .form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px}
 .field{margin-bottom:18px}
 .field label{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin-bottom:6px}
-.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:#fff;outline:none;transition:border-color .12s}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--input-bg);outline:none;transition:border-color .12s}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--orange)}
 .field .hint{font-size:11px;color:var(--ink3);margin-top:5px}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -189,10 +224,16 @@ tbody tr,.lcard{animation:fadeUp .3s ease both}
 .compare-pickers{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
 .compare-picker{flex:1;min-width:160px}
 .compare-picker-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
-.compare-select{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:#fff;outline:none;cursor:pointer;transition:border-color .12s}
+.compare-select{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--input-bg);outline:none;cursor:pointer;transition:border-color .12s}
 .compare-select:focus{border-color:var(--orange)}
 .compare-vs{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--ink3);padding-top:20px;flex-shrink:0}
 .compare-winner{font-weight:600}
+
+/* THEME SELECTOR */
+.theme-selector{display:flex;gap:5px;align-items:center;padding:6px 0;flex-shrink:0}
+.theme-swatch{width:13px;height:13px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;padding:0;flex-shrink:0;outline:none}
+.theme-swatch:hover{transform:scale(1.25)}
+.theme-swatch.active{border-color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
 
 /* RESPONSIVE */
 @media(max-width:640px){

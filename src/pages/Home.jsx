@@ -8,6 +8,7 @@ import PaceChart from '../components/PaceChart.jsx'
 import RacePanel from '../components/RacePanel.jsx'
 import RaceTable from '../components/RaceTable.jsx'
 import MobileCards from '../components/MobileCards.jsx'
+import ThemeSelector from '../components/ThemeSelector.jsx'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -58,6 +59,7 @@ export default function Home() {
               {!loading && runs.length > 0 && <StatsHeader stats={stats} variant="header" />}
               <Link to="/submit" className="nav-link primary" style={{ marginLeft: '12px', flexShrink: 0 }}>Submit a Run</Link>
               <Link to="/admin" className="nav-link" style={{ flexShrink: 0 }}>Admin</Link>
+              <ThemeSelector />
             </div>
           </div>
         </div>

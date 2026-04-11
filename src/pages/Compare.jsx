@@ -4,6 +4,7 @@ import { Chart, registerables } from 'chart.js'
 import { getRunners, getRuns } from '../lib/api.js'
 import { processRuns, formatTime, formatPace, KMI } from '../lib/utils.js'
 import RunnerSelector from '../components/RunnerSelector.jsx'
+import ThemeSelector from '../components/ThemeSelector.jsx'
 
 Chart.register(...registerables)
 
@@ -205,6 +206,7 @@ export default function Compare() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
               <Link to="/submit" className="nav-link primary" style={{ flexShrink: 0 }}>Submit a Run</Link>
               <Link to="/admin" className="nav-link" style={{ flexShrink: 0 }}>Admin</Link>
+              <ThemeSelector />
             </div>
           </div>
         </div>
