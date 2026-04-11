@@ -19,6 +19,7 @@ export default async function handler(req, res) {
       .where(and(eq(schema.runs.runnerId, runnerRow.id), eq(schema.runs.status, 'approved')))
       .orderBy(schema.runs.date)
 
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
     res.json(list)
   } catch (err) {
     console.error(err)
