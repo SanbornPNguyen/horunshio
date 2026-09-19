@@ -68,6 +68,13 @@ async function seed() {
 }
 
 async function insertRuns(runnerId) {
+  // runs has no natural unique key, so onConflictDoNothing can't dedupe —
+  // bail out if this runner already has runs instead of doubling them.
+  const existing = await db.query.runs.findFirst({ where: (r, { eq }) => eq(r.runnerId, runnerId) })
+  if (existing) {
+    console.log('Runner already has runs, skipping run inserts.')
+    return
+  }
   for (const r of RAW) {
     await db
       .insert(runs)
@@ -79,7 +86,6 @@ async function insertRuns(runnerId) {
         timeSeconds: parseTime(r.t),
         status: 'approved',
       })
-      .onConflictDoNothing()
     console.log(`  Inserted: ${r.n}`)
   }
 }

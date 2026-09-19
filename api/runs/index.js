@@ -1,23 +1,33 @@
 import { eq, and } from 'drizzle-orm'
 import { db, schema } from '../_lib/db.js'
 
+// GET /api/runs?runner=slug — one runner's approved runs
+// GET /api/runs             — every approved run, with runner name/slug (events pages)
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end()
 
   const { runner } = req.query
-  if (!runner) return res.status(400).json({ error: 'runner param required' })
+  const approved = eq(schema.runs.status, 'approved')
 
   try {
-    const runnerRow = await db.query.runners.findFirst({
-      where: eq(schema.runners.slug, runner),
-    })
-    if (!runnerRow) return res.status(404).json({ error: 'Runner not found' })
-
-    const list = await db
-      .select()
-      .from(schema.runs)
-      .where(and(eq(schema.runs.runnerId, runnerRow.id), eq(schema.runs.status, 'approved')))
-      .orderBy(schema.runs.date)
+    let list
+    if (runner) {
+      const runnerRow = await db.query.runners.findFirst({
+        where: eq(schema.runners.slug, runner),
+      })
+      if (!runnerRow) return res.status(404).json({ error: 'Runner not found' })
+      list = await db.select().from(schema.runs)
+        .where(and(eq(schema.runs.runnerId, runnerRow.id), approved))
+        .orderBy(schema.runs.date)
+    } else {
+      const rows = await db
+        .select({ run: schema.runs, runnerName: schema.runners.name, runnerSlug: schema.runners.slug })
+        .from(schema.runs)
+        .innerJoin(schema.runners, eq(schema.runs.runnerId, schema.runners.id))
+        .where(approved)
+        .orderBy(schema.runs.date)
+      list = rows.map(r => ({ ...r.run, runnerName: r.runnerName, runnerSlug: r.runnerSlug }))
+    }
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
     res.json(list)

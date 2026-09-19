@@ -11,7 +11,6 @@ A full-stack running statistics web app for tracking race results across multipl
 | Database | [Neon](https://neon.tech) (serverless Postgres) |
 | ORM | [Drizzle ORM](https://orm.drizzle.team) |
 | Auth | [jose](https://github.com/panva/jose) (JWT) — single admin user via environment variables |
-| Email | [Resend](https://resend.com) — submission alert emails to admin |
 | Hosting | [Vercel](https://vercel.com) |
 | Charts | [Chart.js v4](https://www.chartjs.org) |
 | Fonts | [Bebas Neue + DM Sans](https://fonts.google.com) via Google Fonts |
@@ -22,8 +21,12 @@ A full-stack running statistics web app for tracking race results across multipl
 - **Interactive chart** — pace or duration over time, km/mi toggle, click-to-inspect race panel
 - **Sortable race log** — desktop table and mobile card view, sortable by any column
 - **Run submission** — public form for submitting new runs (requires a link to a race result)
-- **Admin approval workflow** — submitted runs are held as pending; admin receives an email alert, then approves or rejects from the dashboard
-- **Admin runner management** — create new runners from the admin dashboard
+- **Admin approval workflow** — submitted runs are held as pending; admin approves or rejects from the dashboard
+- **Admin run management** — add, edit (including status) and delete any run; create runners
+- **Per-runner links** — `/r/:slug`, with link previews (title + PRs) served by `api/share.js`
+- **Events** — `/events` lists every race; `/events/:event` ranks everyone who ran it
+- **Race predictor** — `/predict` estimates times at other distances (Riegel), with selectable runner, base race and endurance factor
+- **Year in review** — `/r/:slug/:year` summary: races, distance, PRs set, fastest race, biggest improvement
 
 ## Project Structure
 
@@ -92,9 +95,18 @@ The app runs at `http://localhost:3000`. Set environment variables in a `.env.lo
 | `JWT_SECRET` | Random secret for signing admin JWTs |
 | `ADMIN_USERNAME` | Admin login username |
 | `ADMIN_PASSWORD` | Admin login password |
-| `RESEND_API_KEY` | Resend API key for email alerts |
-| `ADMIN_EMAIL` | Email address to receive submission notifications |
-| `SITE_URL` | Deployed site URL (used in email links) |
+
+## Tests
+
+```bash
+npm test
+```
+
+Covers the stats helpers in `src/lib/utils.js` (time parsing, distance grouping, PRs, predictor, year review).
+
+## Rate limiting
+
+Login and public submissions are rate limited (10 requests per IP per 5 minutes) by a Vercel Firewall rule, not in code. Manage it with `vercel firewall`.
 
 ## Database Setup
 

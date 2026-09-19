@@ -16,6 +16,48 @@ export function getDistClass(km) {
   return 'dfull'
 }
 
+// Standard race distances in km. Anything within 3% snaps to one of these so
+// 10.0 and 10.02 (or 21.1 and 21.0975) count as the same distance for PRs.
+export const STD_DISTANCES = [
+  { label: '5K', km: 5 },
+  { label: '10K', km: 10 },
+  { label: '15K', km: 15 },
+  { label: '10 Mile', km: 16.0934 },
+  { label: 'Half', km: 21.0975 },
+  { label: 'Marathon', km: 42.195 },
+]
+
+export function distKey(km) {
+  const std = STD_DISTANCES.find(d => Math.abs(km - d.km) / d.km <= 0.03)
+  return std ? std.label : `${Math.round(km * 10) / 10}km`
+}
+
+// "Turkey Trot 2025" -> "turkey-trot-2025"; groups the same event across runners
+export function eventSlug(name) {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+// Only let http(s) links through to href — blocks javascript: and friends
+export function safeUrl(url) {
+  return /^https?:\/\//i.test(url || '') ? url : null
+}
+
+// Riegel: T2 = T1 * (D2 / D1) ^ exponent
+export function predictTime(secs, fromKm, toKm, exponent = 1.06) {
+  return secs * Math.pow(toKm / fromKm, exponent)
+}
+
+// Chart axis/tooltip formatter. Values are minutes (pace) or hours (duration).
+export function chartFormatter(mode, unit) {
+  if (mode === 'pace') {
+    return v => {
+      const m = Math.floor(v), s = Math.round((v - m) * 60)
+      return `${m}:${String(s).padStart(2, '0')} /${unit}`
+    }
+  }
+  return v => formatTime(Math.round(v * 3600))
+}
+
 // Format seconds to "M:SS" pace
 export function formatPace(s) {
   const m = Math.floor(s / 60)
@@ -23,12 +65,15 @@ export function formatPace(s) {
   return `${m}:${String(sc).padStart(2, '0')}`
 }
 
-// Format seconds to "H:MM:SS"
+// Format seconds to "H:MM:SS", or "M:SS" under an hour
 export function formatTime(s) {
+  s = Math.round(s)
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
-  const sc = Math.round(s % 60)
-  return `${h}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`
+  const sc = s % 60
+  return h
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`
+    : `${m}:${String(sc).padStart(2, '0')}`
 }
 
 // Parse "YYYY-MM-DD" to a display string "MM/DD/YYYY" without timezone shift
@@ -46,8 +91,7 @@ export function toISODate(d) {
 
 // Parse "H:MM:SS" or "MM:SS" to total seconds
 export function parseTimeStr(t) {
-  const p = t.split(':').map(Number)
-  return p[0] * 3600 + p[1] * 60 + (p[2] || 0)
+  return t.split(':').map(Number).reduce((total, part) => total * 60 + part, 0)
 }
 
 // Process raw run rows from the API into enriched run objects
@@ -70,25 +114,28 @@ export function processRuns(rawRuns) {
     }
   }).sort((a, b) => a.dateObj - b.dateObj)
 
-  // Build prev-same-distance map
+  // Walk chronologically: previous race at the same distance, and whether
+  // each race beat everything before it at that distance (a PR when run).
   const prevMap = new Map()
   const lastByDist = {}
+  const bestByDist = {}
+  const wasPR = new Set()
   runs.forEach(r => {
-    prevMap.set(r.id, lastByDist[r.km] || null)
-    lastByDist[r.km] = r
-  })
-
-  // PR detection: best (lowest) paceKm per exact km distance
-  const prByKm = new Map()
-  runs.forEach(r => {
-    const existing = prByKm.get(r.km)
-    if (!existing || r.paceKm < existing.paceKm) prByKm.set(r.km, r)
+    const k = distKey(r.km)
+    prevMap.set(r.id, lastByDist[k] || null)
+    lastByDist[k] = r
+    if (!bestByDist[k] || r.paceKm < bestByDist[k].paceKm) {
+      bestByDist[k] = r
+      wasPR.add(r.id)
+    }
   })
 
   return runs.map(r => ({
     ...r,
+    distKey: distKey(r.km),
     prev: prevMap.get(r.id),
-    isPR: prByKm.get(r.km)?.id === r.id,
+    wasPR: wasPR.has(r.id),
+    isPR: bestByDist[distKey(r.km)].id === r.id,
   }))
 }
 
@@ -118,13 +165,9 @@ export function computeStats(runs) {
   const totM = Math.floor((totSecs % 3600) / 60)
   const avgPKm = totSecs / totKm
 
-  // PRs: for each distLabel, find the fastest isPR run
+  // PRs keyed by standard distance ("10K", "Half", ...)
   const prs = {}
-  runs.filter(r => r.isPR).forEach(r => {
-    if (!prs[r.distLabel] || r.paceKm < prs[r.distLabel].paceKm) {
-      prs[r.distLabel] = r
-    }
-  })
+  runs.filter(r => r.isPR).forEach(r => { prs[r.distKey] = r })
 
   // Yearly breakdown
   const byYear = {}
@@ -140,11 +183,11 @@ export function computeStats(runs) {
   // Using same-distance only avoids mixing 10K pace with half-marathon pace.
   let recentForm = null
   const distCount = {}
-  runs.forEach(r => { distCount[r.km] = (distCount[r.km] || 0) + 1 })
-  const dominantKm = Object.entries(distCount).sort((a, b) => b[1] - a[1])[0]?.[0]
-  if (dominantKm) {
+  runs.forEach(r => { distCount[r.distKey] = (distCount[r.distKey] || 0) + 1 })
+  const dominant = Object.entries(distCount).sort((a, b) => b[1] - a[1])[0]?.[0]
+  if (dominant) {
     const distRuns = runs
-      .filter(r => String(r.km) === dominantKm)
+      .filter(r => r.distKey === dominant)
       .sort((a, b) => a.dateObj - b.dateObj)
     if (distRuns.length >= 4) {
       const half = Math.floor(distRuns.length / 2)
@@ -160,4 +203,43 @@ export function computeStats(runs) {
   }
 
   return { count: runs.length, totKm, totH, totM, avgPKm, prs, byYear, recentForm }
+}
+
+// Order PR/distance keys: standard distances first, then odd ones by length
+export function sortDistKeys(keys) {
+  const std = STD_DISTANCES.map(d => d.label)
+  return [...keys].sort((a, b) => {
+    const ia = std.indexOf(a), ib = std.indexOf(b)
+    if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+    return parseFloat(a) - parseFloat(b)
+  })
+}
+
+// Summary of one year for a runner. `runs` must come from processRuns.
+export function yearReview(runs, year) {
+  const yr = runs.filter(r => r.year === year)
+  const prev = runs.filter(r => r.year === year - 1)
+  const sum = (list, f) => list.reduce((s, r) => s + f(r), 0)
+
+  // Biggest same-distance pace drop vs the previous race at that distance
+  const improvements = yr.filter(r => r.prev).map(r => ({ run: r, gain: r.prev.paceKm - r.paceKm }))
+  const mostImproved = improvements.sort((a, b) => b.gain - a.gain)[0]
+
+  const byMonth = Array(12).fill(0)
+  yr.forEach(r => { byMonth[r.dateObj.getMonth()]++ })
+
+  return {
+    year,
+    runs: yr,
+    count: yr.length,
+    km: sum(yr, r => r.km),
+    secs: sum(yr, r => r.secs),
+    prsSet: yr.filter(r => r.wasPR && r.prev),
+    newDistances: yr.filter(r => !r.prev),
+    fastest: [...yr].sort((a, b) => a.paceKm - b.paceKm)[0] || null,
+    mostImproved: mostImproved?.gain > 0 ? mostImproved : null,
+    byMonth,
+    prevCount: prev.length,
+    prevKm: sum(prev, r => r.km),
+  }
 }

@@ -1,4 +1,5 @@
-import { formatTime, formatPace, getDelta } from '../lib/utils.js'
+import { Link } from 'react-router-dom'
+import { formatTime, formatPace, getDelta, safeUrl, eventSlug } from '../lib/utils.js'
 
 export default function RacePanel({ runs, selIdx, onClose, onNavigate, unit = 'km' }) {
   if (selIdx === null || selIdx === undefined) return <div className="race-panel" />
@@ -27,6 +28,12 @@ export default function RacePanel({ runs, selIdx, onClose, onNavigate, unit = 'k
           {delta && (
             <span className={`rp-delta ${delta.cls}`}>{delta.label}</span>
           )}
+        </div>
+        <div className="rp-links">
+          {safeUrl(run.link) && (
+            <a href={safeUrl(run.link)} target="_blank" rel="noopener noreferrer">View result ↗</a>
+          )}
+          <Link to={`/events/${eventSlug(run.eventName)}`}>Event leaderboard →</Link>
         </div>
       </div>
       <div className="rp-right">

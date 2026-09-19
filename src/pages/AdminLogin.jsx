@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminLogin } from '../lib/api.js'
+import Header from '../components/Header.jsx'
 
 export default function AdminLogin() {
   const navigate = useNavigate()
@@ -24,11 +25,7 @@ export default function AdminLogin() {
 
   return (
     <>
-      <header className="hdr">
-        <div className="hdr-in">
-          <h1 className="logo">Ho<span>Run</span>Shio</h1>
-        </div>
-      </header>
+      <Header />
 
       <div className="admin-page">
         <h2>Admin Login</h2>
