@@ -48,6 +48,17 @@ export async function getRuns(slug) {
   return data
 }
 
+// Every approved run with runnerName/runnerSlug — powers the events pages
+export async function getAllRuns() {
+  const cached = cacheGet('runs:*')
+  if (cached) return cached
+  const res = await fetch(`${BASE}/runs`)
+  if (!res.ok) throw new Error('Failed to fetch runs')
+  const data = await res.json()
+  cacheSet('runs:*', data)
+  return data
+}
+
 export async function submitRun(data) {
   const res = await fetch(`${BASE}/submissions`, {
     method: 'POST',
@@ -126,4 +137,32 @@ export async function createRunner(name, slug) {
   }
   cacheDel('runners') // new runner should appear in the selector
   return res.json()
+}
+
+async function adminFetch(path, options, fallbackError) {
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+  })
+  if (res.status === 401) throw new Error('Unauthorized')
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || fallbackError)
+  }
+  return res.status === 204 ? null : res.json()
+}
+
+export function adminGetRuns(runnerId) {
+  return adminFetch(`/admin/runs?runnerId=${runnerId}`, {}, 'Failed to load runs')
+}
+
+export async function adminUpdateRun(id, data) {
+  const run = await adminFetch(`/admin/runs/${id}`, { method: 'PATCH', body: JSON.stringify(data) }, 'Failed to save run')
+  cacheDel('runs:')
+  return run
+}
+
+export async function adminDeleteRun(id) {
+  await adminFetch(`/admin/runs/${id}`, { method: 'DELETE' }, 'Failed to delete run')
+  cacheDel('runs:')
 }

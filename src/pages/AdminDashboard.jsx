@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getPendingSubmissions, reviewSubmission, createRunner, getRunners, adminLogout, adminAddRun } from '../lib/api.js'
-import { formatTime, formatPace, formatDate, parseTimeStr } from '../lib/utils.js'
+import {
+  getPendingSubmissions, reviewSubmission, createRunner, getRunners, adminLogout, adminAddRun,
+  adminGetRuns, adminUpdateRun, adminDeleteRun,
+} from '../lib/api.js'
+import { formatTime, formatPace, formatDate, safeUrl, KMI } from '../lib/utils.js'
+import Header from '../components/Header.jsx'
+import RunForm, { runToForm } from '../components/RunForm.jsx'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -69,18 +74,13 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <header className="hdr">
-        <div className="hdr-in">
-          <h1 className="logo">Ho<span>Run</span>Shio</h1>
-          <div className="nav-links">
-            <button className="logout-btn" onClick={handleLogout}>Sign out</button>
-          </div>
-        </div>
-      </header>
+      <Header>
+        <button className="logout-btn" onClick={handleLogout}>Sign out</button>
+      </Header>
 
       <div className="admin-page">
         <h2>Admin Dashboard</h2>
-        <p className="subtitle">Add runs, review submissions, and manage runners.</p>
+        <p className="subtitle">Add, edit and review runs, and manage runners.</p>
 
         <div className="admin-tabs">
           <button className={`admin-tab${tab === 'add-run' ? ' active' : ''}`} onClick={() => setTab('add-run')}>
@@ -88,6 +88,9 @@ export default function AdminDashboard() {
           </button>
           <button className={`admin-tab${tab === 'submissions' ? ' active' : ''}`} onClick={() => setTab('submissions')}>
             Pending {submissions.length > 0 && `(${submissions.length})`}
+          </button>
+          <button className={`admin-tab${tab === 'runs' ? ' active' : ''}`} onClick={() => setTab('runs')}>
+            All Runs
           </button>
           <button className={`admin-tab${tab === 'runners' ? ' active' : ''}`} onClick={() => setTab('runners')}>
             Runners
@@ -97,7 +100,11 @@ export default function AdminDashboard() {
         {loading && <div className="loading">Loading…</div>}
 
         {!loading && tab === 'add-run' && (
-          <AddRunForm runners={runners} onAdded={() => {}} onUnauthorized={() => navigate('/admin')} />
+          <AddRun runners={runners} onUnauthorized={() => navigate('/admin')} />
+        )}
+
+        {!loading && tab === 'runs' && (
+          <RunsManager runners={runners} onUnauthorized={() => navigate('/admin')} />
         )}
 
         {!loading && tab === 'submissions' && (
@@ -138,7 +145,7 @@ export default function AdminDashboard() {
                 Add New Runner
               </div>
               {runnerError && <div className="error-msg">{runnerError}</div>}
-              {runnerSuccess && <div style={{ background: 'var(--greenbg)', color: 'var(--green)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }}>{runnerSuccess}</div>}
+              {runnerSuccess && <div style={successStyle}>{runnerSuccess}</div>}
               <form onSubmit={handleCreateRunner}>
                 <div className="field-row">
                   <div className="field" style={{ margin: 0 }}>
@@ -162,129 +169,126 @@ export default function AdminDashboard() {
   )
 }
 
-function AddRunForm({ runners, onAdded, onUnauthorized }) {
-  const emptyForm = { runnerId: '', eventName: '', date: '', km: '', timeStr: '', link: '' }
-  const [form, setForm] = useState(emptyForm)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+const successStyle = { background: 'var(--greenbg)', color: 'var(--green)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }
+
+function AddRun({ runners, onUnauthorized }) {
   const [success, setSuccess] = useState('')
 
-  useEffect(() => {
-    if (runners.length && !form.runnerId) {
-      setForm(f => ({ ...f, runnerId: String(runners[0].id) }))
-    }
-  }, [runners]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function set(key, val) { setForm(f => ({ ...f, [key]: val })); setError('') }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
+  async function handleSubmit(data) {
     setSuccess('')
-
-    if (!/^\d+:\d{2}(:\d{2})?$/.test(form.timeStr.trim())) {
-      setError('Time must be in H:MM:SS or MM:SS format (e.g. 1:26:01)')
-      return
-    }
-
-    const timeSeconds = parseTimeStr(form.timeStr.trim())
-    if (!timeSeconds || timeSeconds <= 0) { setError('Invalid time value'); return }
-
-    setSubmitting(true)
     try {
-      await adminAddRun({
-        runnerId: form.runnerId,
-        eventName: form.eventName.trim(),
-        date: form.date,
-        km: parseFloat(form.km),
-        timeSeconds,
-        link: form.link.trim() || null,
-      })
-      setSuccess(`"${form.eventName.trim()}" added successfully!`)
-      setForm(f => ({ ...emptyForm, runnerId: f.runnerId }))
-      onAdded()
+      await adminAddRun(data)
+      setSuccess(`"${data.eventName}" added successfully!`)
     } catch (err) {
       if (err.message === 'Unauthorized') onUnauthorized()
-      setError(err.message)
-    } finally {
-      setSubmitting(false)
+      throw err
     }
   }
 
   return (
-    <form className="form-card" onSubmit={handleSubmit} style={{ maxWidth: '560px' }}>
-      {error && <div className="error-msg">{error}</div>}
-      {success && <div style={{ background: 'var(--greenbg)', color: 'var(--green)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', marginBottom: '16px' }}>{success}</div>}
+    <div style={{ maxWidth: '560px' }}>
+      {success && <div style={successStyle}>{success}</div>}
+      <RunForm runners={runners} onSubmit={handleSubmit} submitLabel="Add Run" busyLabel="Adding…" resetOnSuccess />
+    </div>
+  )
+}
 
-      <div className="field">
+function RunsManager({ runners, onUnauthorized }) {
+  const [runnerId, setRunnerId] = useState(runners[0] ? String(runners[0].id) : '')
+  const [runs, setRuns] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!runnerId) return
+    let stale = false
+    setRuns(null)
+    setError('')
+    adminGetRuns(runnerId)
+      .then(list => { if (!stale) setRuns(list) })
+      .catch(err => { if (err.message === 'Unauthorized') onUnauthorized(); else setError(err.message) })
+    return () => { stale = true }
+  }, [runnerId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSave(id, data) {
+    try {
+      const updated = await adminUpdateRun(id, data)
+      // Moved to another runner? Drop it from this list.
+      setRuns(rs => String(updated.runnerId) === runnerId
+        ? rs.map(r => r.id === id ? updated : r)
+        : rs.filter(r => r.id !== id))
+      setEditingId(null)
+    } catch (err) {
+      if (err.message === 'Unauthorized') onUnauthorized()
+      throw err
+    }
+  }
+
+  async function handleDelete(run) {
+    if (!confirm(`Delete "${run.eventName}" (${formatDate(run.date)})? This can't be undone.`)) return
+    try {
+      await adminDeleteRun(run.id)
+      setRuns(rs => rs.filter(r => r.id !== run.id))
+    } catch (err) {
+      if (err.message === 'Unauthorized') onUnauthorized()
+      setError(err.message)
+    }
+  }
+
+  return (
+    <>
+      <div className="field" style={{ maxWidth: '280px' }}>
         <label>Runner</label>
-        <select value={form.runnerId} onChange={e => set('runnerId', e.target.value)} required>
+        <select value={runnerId} onChange={e => { setRunnerId(e.target.value); setEditingId(null) }}>
           {runners.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
       </div>
 
-      <div className="field">
-        <label>Event Name</label>
-        <input
-          type="text"
-          placeholder="e.g. Turkey Trot 2025"
-          value={form.eventName}
-          onChange={e => set('eventName', e.target.value)}
-          required
-        />
-      </div>
+      {error && <div className="error-msg">{error}</div>}
+      {!runs && !error && <div className="loading">Loading…</div>}
+      {runs?.length === 0 && <div className="empty-state" style={{ padding: '40px 0' }}><p>No runs for this runner.</p></div>}
 
-      <div className="field-row">
-        <div className="field">
-          <label>Date</label>
-          <input type="date" value={form.date} onChange={e => set('date', e.target.value)} required />
-        </div>
-        <div className="field">
-          <label>Distance (km)</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0.1"
-            placeholder="10.0"
-            value={form.km}
-            onChange={e => set('km', e.target.value)}
-            required
+      {runs?.map(run => editingId === run.id ? (
+        <div key={run.id} style={{ marginBottom: '12px' }}>
+          <RunForm
+            runners={runners}
+            initial={runToForm(run)}
+            showStatus
+            submitLabel="Save"
+            busyLabel="Saving…"
+            onSubmit={data => handleSave(run.id, data)}
+            onCancel={() => setEditingId(null)}
           />
         </div>
-      </div>
-
-      <div className="field">
-        <label>Finish Time</label>
-        <input
-          type="text"
-          placeholder="1:26:01"
-          value={form.timeStr}
-          onChange={e => set('timeStr', e.target.value)}
-          required
-        />
-        <div className="hint">Format: H:MM:SS (e.g. 1:26:01 or 58:30)</div>
-      </div>
-
-      <div className="field">
-        <label>Link <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-        <input
-          type="url"
-          placeholder="https://www.strava.com/activities/..."
-          value={form.link}
-          onChange={e => set('link', e.target.value)}
-        />
-      </div>
-
-      <button className="btn-primary" type="submit" disabled={submitting}>
-        {submitting ? 'Adding…' : 'Add Run'}
-      </button>
-    </form>
+      ) : (
+        <div key={run.id} className="submission-card">
+          <div className="submission-header">
+            <div>
+              <div className="submission-name">{run.eventName}</div>
+              <div className="submission-runner">
+                {formatDate(run.date)} · {parseFloat(run.km)}km · {formatTime(run.timeSeconds)}
+              </div>
+            </div>
+            <span className={`badge-${run.status}`}>{run.status}</span>
+          </div>
+          {safeUrl(run.link) && (
+            <div className="submission-link">
+              <a href={safeUrl(run.link)} target="_blank" rel="noopener noreferrer">🔗 {run.link}</a>
+            </div>
+          )}
+          <div className="submission-actions">
+            <button className="btn-secondary" onClick={() => setEditingId(run.id)}>Edit</button>
+            <button className="btn-reject" onClick={() => handleDelete(run)}>Delete</button>
+          </div>
+        </div>
+      ))}
+    </>
   )
 }
 
 function SubmissionCard({ sub, reviewing, onReview }) {
   const km = parseFloat(sub.km)
-  const mi = km * 0.621371
+  const mi = km * KMI
   const paceKm = sub.timeSeconds / km
   const paceMi = sub.timeSeconds / mi
 
@@ -307,7 +311,9 @@ function SubmissionCard({ sub, reviewing, onReview }) {
 
       {sub.link && (
         <div className="submission-link" style={{ marginBottom: '8px' }}>
-          <a href={sub.link} target="_blank" rel="noopener noreferrer">🔗 {sub.link}</a>
+          {safeUrl(sub.link)
+            ? <a href={safeUrl(sub.link)} target="_blank" rel="noopener noreferrer">🔗 {sub.link}</a>
+            : <span style={{ fontSize: '12px', color: 'var(--red)' }}>⚠ Unsafe link (not http/https): {sub.link}</span>}
         </div>
       )}
 

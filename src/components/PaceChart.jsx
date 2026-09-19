@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart, registerables } from 'chart.js'
+import { useThemeColors, alpha } from '../hooks/useTheme.js'
+import { getDelta, chartFormatter } from '../lib/utils.js'
 
 Chart.register(...registerables)
 
@@ -15,11 +17,12 @@ const refLinePlugin = {
     const yScale = chart.scales.y
     const xScale = chart.scales.x
     const y = yScale.getPixelForValue(val)
+    const t = chart._t
     const c = chart.ctx
     c.save()
     c.beginPath()
     c.setLineDash([5, 4])
-    c.strokeStyle = 'rgba(242,92,30,0.45)'
+    c.strokeStyle = alpha(t.orange, 0.45)
     c.lineWidth = 1.5
     c.moveTo(xScale.left, y)
     c.lineTo(xScale.right, y)
@@ -30,7 +33,7 @@ const refLinePlugin = {
     c.font = '500 11px DM Sans,sans-serif'
     const tw = c.measureText(label).width
     const pw = tw + 14, ph = 20, px = xScale.right - pw - 2, py = y - ph / 2, pr = 4
-    c.fillStyle = '#F25C1E'
+    c.fillStyle = t.orange
     c.beginPath()
     c.moveTo(px + pr, py); c.lineTo(px + pw - pr, py)
     c.arcTo(px + pw, py, px + pw, py + pr, pr)
@@ -71,11 +74,12 @@ const crosshairPlugin = {
     const xScale = chart.scales.x
     const yScale = chart.scales.y
     const x = xScale.getPixelForValue(idx)
+    const t = chart._t
     const c = chart.ctx
     c.save()
     c.beginPath()
     c.setLineDash([4, 3])
-    c.strokeStyle = 'rgba(242,92,30,0.22)'
+    c.strokeStyle = alpha(t.orange, 0.22)
     c.lineWidth = 1
     c.moveTo(x, yScale.top)
     c.lineTo(x, yScale.bottom)
@@ -93,6 +97,7 @@ const yearBandsPlugin = {
     if (!runs?.length) return
     const xScale = chart.scales.x
     const yScale = chart.scales.y
+    const t = chart._t
     const c = chart.ctx
     c.save()
     c.font = '500 9px DM Sans,sans-serif'
@@ -105,7 +110,7 @@ const yearBandsPlugin = {
       // separator line
       c.beginPath()
       c.setLineDash([3, 4])
-      c.strokeStyle = 'rgba(26,20,16,0.1)'
+      c.strokeStyle = t.border2
       c.lineWidth = 1
       c.moveTo(x, yScale.top)
       c.lineTo(x, yScale.bottom)
@@ -115,11 +120,11 @@ const yearBandsPlugin = {
       const label = String(r.year)
       const tw = c.measureText(label).width
       const pw = tw + 8, ph = 14, py = yScale.top + 4, px = x - pw / 2, pr = 3
-      c.fillStyle = 'rgba(26,20,16,0.06)'
+      c.fillStyle = t.border
       c.beginPath()
       c.roundRect?.(px, py, pw, ph, pr) || (() => { c.rect(px, py, pw, ph) })()
       c.fill()
-      c.fillStyle = 'rgba(26,20,16,0.3)'
+      c.fillStyle = t.ink3
       c.textAlign = 'center'
       c.fillText(label, x, py + 2)
     })
@@ -130,19 +135,6 @@ const yearBandsPlugin = {
 if (!Chart.registry.plugins.get('refLine')) Chart.register(refLinePlugin)
 if (!Chart.registry.plugins.get('crosshair')) Chart.register(crosshairPlugin)
 if (!Chart.registry.plugins.get('yearBands')) Chart.register(yearBandsPlugin)
-
-function getTipFn(mode, unit) {
-  if (mode === 'pace') {
-    return v => {
-      const m = Math.floor(v), s = Math.round((v - m) * 60)
-      return `${m}:${String(s).padStart(2, '0')} /${unit}`
-    }
-  }
-  return v => {
-    const h = Math.floor(v), m = Math.floor((v - h) * 60), s = Math.round(((v - h) * 60 - m) * 60)
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  }
-}
 
 function linearTrend(data) {
   const n = data.length
@@ -165,6 +157,9 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
   const chartRef = useRef(null)
   const [mode, setMode] = useState('pace')
   const [showTrend, setShowTrend] = useState(false)
+  const t = useThemeColors()
+
+  const pointColors = i => i === selIdx || runs[i]?.isPR ? t.orange : t.surface
 
   useEffect(() => {
     if (!canvasRef.current || !runs.length) return
@@ -177,27 +172,23 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
       ? runs.map(r => unit === 'km' ? r.paceKm / 60 : r.paceMi / 60)
       : runs.map(r => r.secs / 3600)
 
-    const tipFn = getTipFn(mode, unit)
+    const tipFn = chartFormatter(mode, unit)
     const trendData = showTrend ? linearTrend(data) : null
 
     const datasets = [
       {
         data,
-        borderColor: '#F25C1E',
+        borderColor: t.orange,
         backgroundColor: ctx => {
           const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 300)
-          g.addColorStop(0, 'rgba(242,92,30,.10)')
-          g.addColorStop(1, 'rgba(242,92,30,0)')
+          g.addColorStop(0, alpha(t.orange, 0.1))
+          g.addColorStop(1, alpha(t.orange, 0))
           return g
         },
         borderWidth: 2,
         pointStyle: data.map((_, i) => runs[i].isPR ? 'star' : 'circle'),
-        pointBackgroundColor: data.map((_, i) => {
-          if (i === selIdx) return '#F25C1E'
-          if (runs[i].isPR) return '#F25C1E'
-          return '#fff'
-        }),
-        pointBorderColor: '#F25C1E',
+        pointBackgroundColor: data.map((_, i) => pointColors(i)),
+        pointBorderColor: t.orange,
         pointBorderWidth: data.map((_, i) => i === selIdx ? 3 : 2),
         pointRadius: data.map((_, i) => {
           if (i === selIdx) return 8
@@ -215,7 +206,7 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
       datasets.push({
         label: 'Trend',
         data: trendData,
-        borderColor: 'rgba(242,92,30,0.4)',
+        borderColor: alpha(t.orange, 0.4),
         borderWidth: 1.5,
         borderDash: [6, 4],
         pointRadius: 0,
@@ -238,7 +229,7 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
             display: showTrend,
             position: 'top',
             labels: {
-              color: '#4A3F38',
+              color: t.ink2,
               font: { size: 11, family: 'DM Sans' },
               boxWidth: 10,
               boxHeight: 10,
@@ -247,7 +238,7 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
           },
           tooltip: {
             filter: item => item.datasetIndex === 0,
-            backgroundColor: '#1A1410',
+            backgroundColor: t['hdr-bg'],
             titleColor: 'rgba(255,255,255,.5)',
             bodyColor: '#fff',
             padding: 12,
@@ -260,22 +251,9 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
               },
               afterLabel: c => {
                 const r = runs[c.dataIndex]
-                const prev = r.prev
-                const delta = prev
-                  ? (() => {
-                    const pace = unit === 'mi' ? r.paceMi : r.paceKm
-                    const prevPace = unit === 'mi' ? prev.paceMi : prev.paceKm
-                    const d = pace - prevPace
-                    const abs = Math.abs(d)
-                    const dm = Math.floor(abs / 60), ds = Math.round(abs % 60)
-                    const str = dm > 0 ? `${dm}m ${String(ds).padStart(2, '0')}s` : `${ds}s`
-                    if (d < -2) return `▲ ${str}/${unit} faster`
-                    if (d > 2) return `▼ ${str}/${unit} slower`
-                    return '± same'
-                  })()
-                  : null
+                const delta = getDelta(r, unit)
                 const distStr = unit === 'mi' ? `${r.mi.toFixed(1)}mi` : `${r.km}km`
-                return `${distStr} · ${r.displayDate}` + (delta ? ` · ${delta}` : '')
+                return `${distStr} · ${r.displayDate}` + (delta ? ` · ${delta.label}` : '')
               },
             },
           },
@@ -289,34 +267,31 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
         },
         scales: {
           x: {
-            grid: { color: 'rgba(26,20,16,.04)' },
-            ticks: { color: '#9A8E87', font: { size: 10 }, maxRotation: 40, autoSkip: true },
+            grid: { color: t.border },
+            ticks: { color: t.ink3, font: { size: 10 }, maxRotation: 40, autoSkip: true },
           },
           y: {
-            grid: { color: 'rgba(26,20,16,.04)' },
+            grid: { color: t.border },
             reverse: mode === 'pace',
-            ticks: { color: '#9A8E87', font: { size: 10 }, callback: tipFn },
+            ticks: { color: t.ink3, font: { size: 10 }, callback: tipFn },
           },
         },
       },
     })
 
     chartRef.current._tipFn = tipFn
+    chartRef.current._t = t
     chartRef.current._selIdx = selIdx
     chartRef.current._runs = runs
     chartRef.current._crosshairIdx = null
-  }, [runs, mode, unit, showTrend]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [runs, mode, unit, showTrend, t]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update selection dots without full rebuild
   useEffect(() => {
     if (!chartRef.current) return
     chartRef.current._selIdx = selIdx
     const ds = chartRef.current.data.datasets[0]
-    ds.pointBackgroundColor = ds.data.map((_, i) => {
-      if (i === selIdx) return '#F25C1E'
-      if (runs[i]?.isPR) return '#F25C1E'
-      return '#fff'
-    })
+    ds.pointBackgroundColor = ds.data.map((_, i) => pointColors(i))
     ds.pointRadius = ds.data.map((_, i) => {
       if (i === selIdx) return 8
       if (runs[i]?.isPR) return 7

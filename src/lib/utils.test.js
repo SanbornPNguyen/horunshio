@@ -1,0 +1,43 @@
+// Run with: npm test
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { parseTimeStr, distKey, eventSlug, safeUrl, predictTime, processRuns, yearReview } from './utils.js'
+
+test('parseTimeStr handles H:MM:SS and MM:SS', () => {
+  assert.equal(parseTimeStr('1:26:01'), 5161)
+  assert.equal(parseTimeStr('58:30'), 3510) // minutes, not hours
+})
+
+test('distKey snaps near-standard distances', () => {
+  assert.equal(distKey(10), '10K')
+  assert.equal(distKey(10.02), '10K')
+  assert.equal(distKey(21.1), 'Half')
+  assert.equal(distKey(8), '8km')
+})
+
+test('eventSlug and safeUrl', () => {
+  assert.equal(eventSlug('  Santa Monica-Venice Xmas Run 2025 '), 'santa-monica-venice-xmas-run-2025')
+  assert.equal(safeUrl('https://strava.com/a/1'), 'https://strava.com/a/1')
+  assert.equal(safeUrl('javascript:alert(1)'), null)
+})
+
+test('predictTime is Riegel', () => {
+  assert.equal(Math.round(predictTime(3000, 10, 10)), 3000)
+  assert.equal(Math.round(predictTime(3000, 10, 21.0975)), Math.round(3000 * Math.pow(2.10975, 1.06)))
+})
+
+test('PRs group 10.0 and 10.02 km together; wasPR tracks PRs at the time', () => {
+  const runs = processRuns([
+    { id: 1, eventName: 'A', date: '2024-01-01', km: '10.0', timeSeconds: 3600 },
+    { id: 2, eventName: 'B', date: '2024-06-01', km: '10.02', timeSeconds: 3300 },
+    { id: 3, eventName: 'C', date: '2025-01-01', km: '10.0', timeSeconds: 3500 },
+  ])
+  assert.deepEqual(runs.map(r => r.isPR), [false, true, false])
+  assert.deepEqual(runs.map(r => r.wasPR), [true, true, false])
+  assert.equal(runs[2].prev.id, 2)
+
+  const y = yearReview(runs, 2024)
+  assert.equal(y.count, 2)
+  assert.equal(y.prsSet.length, 1)
+  assert.equal(y.mostImproved.run.id, 2)
+})

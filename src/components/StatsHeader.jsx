@@ -1,4 +1,4 @@
-import { formatPace } from '../lib/utils.js'
+import { formatPace, KMI } from '../lib/utils.js'
 
 const FORM = {
   improving: { cls: 'form-improving', icon: '↑', label: 'Improving' },
@@ -6,13 +6,13 @@ const FORM = {
   steady:    { cls: 'form-steady',    icon: '→', label: 'Steady'    },
 }
 
-export default function StatsHeader({ stats }) {
+export default function StatsHeader({ stats, unit = 'km' }) {
   const { count, totKm, totH, totM, avgPKm, recentForm } = stats
   const form = recentForm ? FORM[recentForm] : null
 
-  const kmDisplay = totKm >= 1000
-    ? `${(totKm / 1000).toFixed(1)}k`
-    : totKm.toFixed(1)
+  const dist = unit === 'mi' ? totKm * KMI : totKm
+  const distDisplay = dist >= 1000 ? `${(dist / 1000).toFixed(1)}k` : dist.toFixed(1)
+  const avgPace = unit === 'mi' ? avgPKm / KMI : avgPKm
 
   return (
     <div className="stats-bar">
@@ -21,7 +21,7 @@ export default function StatsHeader({ stats }) {
         <div className="stat-lbl">Races</div>
       </div>
       <div className="stat-card">
-        <div className="stat-val">{kmDisplay}<em>km</em></div>
+        <div className="stat-val">{distDisplay}<em>{unit}</em></div>
         <div className="stat-lbl">Distance</div>
       </div>
       <div className="stat-card">
@@ -29,7 +29,7 @@ export default function StatsHeader({ stats }) {
         <div className="stat-lbl">On Feet</div>
       </div>
       <div className="stat-card">
-        <div className="stat-val">{formatPace(avgPKm)}<em>/km</em></div>
+        <div className="stat-val">{formatPace(avgPace)}<em>/{unit}</em></div>
         <div className="stat-lbl">Avg Pace</div>
       </div>
       {form && (

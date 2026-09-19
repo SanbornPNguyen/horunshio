@@ -13,12 +13,7 @@ export async function verifyAuth(req) {
   const auth = req.headers['authorization'] || ''
   const token = auth.replace('Bearer ', '').trim()
   if (!token) throw new Error('Unauthorized')
-  const { payload } = await jwtVerify(token, secret())
+  const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] })
+  if (payload.role !== 'admin') throw new Error('Unauthorized')
   return payload
-}
-
-export function cors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 }

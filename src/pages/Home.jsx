@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getRunners, getRuns } from '../lib/api.js'
 import { processRuns, computeStats } from '../lib/utils.js'
 import RunnerSelector from '../components/RunnerSelector.jsx'
@@ -10,12 +10,13 @@ import PaceChart from '../components/PaceChart.jsx'
 import RacePanel from '../components/RacePanel.jsx'
 import RaceTable from '../components/RaceTable.jsx'
 import MobileCards from '../components/MobileCards.jsx'
-import ThemeSelector from '../components/ThemeSelector.jsx'
+import Header from '../components/Header.jsx'
 
 export default function Home() {
   const navigate = useNavigate()
+  const { slug } = useParams()
   const [runners, setRunners] = useState([])
-  const [activeSlug, setActiveSlug] = useState(null)
+  const [notFound, setNotFound] = useState(false)
   const [runs, setRuns] = useState([])
   const [selIdx, setSelIdx] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -25,25 +26,32 @@ export default function Home() {
   const chartRef = useRef(null)
 
   useEffect(() => {
-    getRunners().then(list => {
-      setRunners(list)
-      if (list.length) setActiveSlug(list[0].slug)
-    }).catch(console.error)
+    getRunners().then(setRunners).catch(console.error)
   }, [])
+
+  // "/" shows the first runner; "/r/:slug" shows that one
+  const activeSlug = slug || runners[0]?.slug
 
   useEffect(() => {
     if (!activeSlug) return
+    let stale = false // ignore responses for a runner we've already switched away from
     setLoading(true)
+    setNotFound(false)
     setSelIdx(null)
     setFilterYear(null)
     setFilterDist(null)
     getRuns(activeSlug).then(raw => {
+      if (stale) return
       setRuns(processRuns(raw))
       setLoading(false)
     }).catch(err => {
+      if (stale) return
       console.error(err)
+      setRuns([])
+      setNotFound(true)
       setLoading(false)
     })
+    return () => { stale = true }
   }, [activeSlug])
 
   function handleSelect(idx) {
@@ -77,21 +85,12 @@ export default function Home() {
 
   return (
     <>
-      <header className="hdr">
-        <div className="hdr-in">
-          <h1 className="logo">Ho<span>Run</span>Shio</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
-            <Link to="/submit" className="nav-link primary" style={{ flexShrink: 0 }}>Submit a Run</Link>
-            <Link to="/admin" className="nav-link" style={{ flexShrink: 0 }}>Admin</Link>
-            <ThemeSelector />
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <RunnerSelector
         runners={runners}
         activeSlug={activeSlug}
-        onChange={slug => setActiveSlug(slug)}
+        onChange={s => navigate(`/r/${s}`)}
         onCompare={() => navigate('/compare')}
       />
 
@@ -100,17 +99,17 @@ export default function Home() {
 
         {!loading && runs.length === 0 && (
           <div className="empty-state">
-            <p>No runs yet for this runner.</p>
+            <p>{notFound ? 'Runner not found.' : 'No runs yet for this runner.'}</p>
           </div>
         )}
 
         {!loading && runs.length > 0 && (
           <>
             {/* ── Stats ─────────────────────────────────────────── */}
-            <StatsHeader stats={stats} />
+            <StatsHeader stats={stats} unit={unit} />
 
             {/* ── Personal Records ──────────────────────────────── */}
-            <PRCards prs={stats.prs} />
+            <PRCards prs={stats.prs} unit={unit} />
 
             {/* ── Filters ───────────────────────────────────────── */}
             <FilterBar
@@ -131,6 +130,11 @@ export default function Home() {
                     ? `${displayedRuns.length} race${displayedRuns.length !== 1 ? 's' : ''}`
                     : null,
                 ].filter(Boolean).join(' · ')}
+                {filterYear && (
+                  <Link to={`/r/${activeSlug}/${filterYear}`} className="filter-link">
+                    {filterYear} in review →
+                  </Link>
+                )}
                 <button
                   className="filter-clear"
                   onClick={() => { handleYearChange(null); handleDistChange(null) }}

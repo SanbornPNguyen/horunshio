@@ -1,9 +1,7 @@
-import { formatTime, formatPace } from '../lib/utils.js'
+import { formatTime, formatPace, sortDistKeys } from '../lib/utils.js'
 
-const DIST_ORDER = ['5K', '10K', '15K', 'Half', 'Full']
-
-export default function PRCards({ prs }) {
-  const entries = DIST_ORDER.filter(d => prs[d])
+export default function PRCards({ prs, unit = 'km' }) {
+  const entries = sortDistKeys(Object.keys(prs))
   if (!entries.length) return null
 
   return (
@@ -19,7 +17,7 @@ export default function PRCards({ prs }) {
               <div className="pr-card-dist">★ {dist}</div>
               <div className="pr-card-time">{formatTime(run.secs)}</div>
               <div className="pr-card-pace">
-                {formatPace(run.paceKm)} <span>/km</span>
+                {formatPace(unit === 'mi' ? run.paceMi : run.paceKm)} <span>/{unit}</span>
               </div>
               <div className="pr-card-event" title={run.eventName}>
                 {run.eventName}

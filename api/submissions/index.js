@@ -1,30 +1,20 @@
 import { db, schema } from '../_lib/db.js'
+import { readBody, parseRun, pgCode } from '../_lib/validate.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { runnerId, eventName, date, km, timeSeconds, link } = req.body
-
-  if (!runnerId || !eventName || !date || !km || !timeSeconds) {
-    return res.status(400).json({ error: 'Missing required fields' })
-  }
+  const { run, error } = parseRun(readBody(req), { requireLink: true })
+  if (error) return res.status(400).json({ error })
 
   try {
     const [submission] = await db
       .insert(schema.runs)
-      .values({
-        runnerId: parseInt(runnerId),
-        eventName,
-        date,
-        km: String(km),
-        timeSeconds: parseInt(timeSeconds),
-        link: link || null,
-        status: 'pending',
-      })
+      .values({ ...run, status: 'pending' })
       .returning()
-
     res.status(201).json({ id: submission.id })
   } catch (err) {
+    if (pgCode(err) === '23503') return res.status(400).json({ error: 'Unknown runner' })
     console.error(err)
     res.status(500).json({ error: 'Internal server error' })
   }

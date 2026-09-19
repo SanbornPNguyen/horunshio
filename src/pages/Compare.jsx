@@ -1,32 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Chart, registerables } from 'chart.js'
 import { getRunners, getRuns } from '../lib/api.js'
-import { processRuns, formatTime, formatPace, KMI } from '../lib/utils.js'
+import { processRuns, formatTime, formatPace, eventSlug, chartFormatter } from '../lib/utils.js'
+import { useThemeColors, alpha } from '../hooks/useTheme.js'
 import RunnerSelector from '../components/RunnerSelector.jsx'
-import ThemeSelector from '../components/ThemeSelector.jsx'
+import Header from '../components/Header.jsx'
+
+const COLOR_A = 'var(--orange)'
+const COLOR_B = 'var(--cmp-b)'
 
 Chart.register(...registerables)
-
-const COLOR_A = '#F25C1E'
-const COLOR_B = '#1B59AC'
-
-function getTipFn(mode, unit) {
-  if (mode === 'pace') {
-    return v => {
-      const m = Math.floor(v), s = Math.round((v - m) * 60)
-      return `${m}:${String(s).padStart(2, '0')} /${unit}`
-    }
-  }
-  return v => {
-    const h = Math.floor(v), m = Math.floor((v - h) * 60), s = Math.round(((v - h) * 60 - m) * 60)
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  }
-}
 
 function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
   const canvasRef = useRef(null)
   const chartRef = useRef(null)
+  const t = useThemeColors()
 
   useEffect(() => {
     if (!canvasRef.current || !sharedRuns.length) return
@@ -35,19 +24,11 @@ function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
     const labels = sharedRuns.map(p =>
       p.runA.eventName.replace(/(\d{4})/, "'$1").split(' ').slice(0, 3).join(' ')
     )
-    const tipFn = getTipFn(mode, unit)
+    const tipFn = chartFormatter(mode, unit)
 
     function getValue(run) {
       if (mode === 'pace') return unit === 'km' ? run.paceKm / 60 : run.paceMi / 60
       return run.secs / 3600
-    }
-
-    function makeGradient(ctx, color) {
-      const g = ctx.createLinearGradient(0, 0, 0, 240)
-      const hex = color === COLOR_A ? '242,92,30' : '27,89,172'
-      g.addColorStop(0, `rgba(${hex},.12)`)
-      g.addColorStop(1, `rgba(${hex},0)`)
-      return g
     }
 
     chartRef.current = new Chart(canvasRef.current, {
@@ -58,11 +39,10 @@ function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
           {
             label: runnerA.name,
             data: sharedRuns.map(p => getValue(p.runA)),
-            borderColor: COLOR_A,
-            backgroundColor: ctx => makeGradient(ctx.chart.ctx, COLOR_A),
+            borderColor: t.orange,
             borderWidth: 2,
-            pointBackgroundColor: COLOR_A,
-            pointBorderColor: COLOR_A,
+            pointBackgroundColor: t.orange,
+            pointBorderColor: t.orange,
             pointRadius: 5,
             pointHoverRadius: 7,
             fill: false,
@@ -71,11 +51,10 @@ function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
           {
             label: runnerB.name,
             data: sharedRuns.map(p => getValue(p.runB)),
-            borderColor: COLOR_B,
-            backgroundColor: ctx => makeGradient(ctx.chart.ctx, COLOR_B),
+            borderColor: t['cmp-b'],
             borderWidth: 2,
-            pointBackgroundColor: COLOR_B,
-            pointBorderColor: COLOR_B,
+            pointBackgroundColor: t['cmp-b'],
+            pointBorderColor: t['cmp-b'],
             pointRadius: 5,
             pointHoverRadius: 7,
             fill: false,
@@ -91,10 +70,10 @@ function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
           legend: {
             display: true,
             position: 'top',
-            labels: { color: '#4A3F38', font: { size: 12, family: 'DM Sans' }, boxWidth: 12, boxHeight: 12, borderRadius: 3 },
+            labels: { color: t.ink2, font: { size: 12, family: 'DM Sans' }, boxWidth: 12, boxHeight: 12, borderRadius: 3 },
           },
           tooltip: {
-            backgroundColor: '#1A1410',
+            backgroundColor: t['hdr-bg'],
             titleColor: 'rgba(255,255,255,.5)',
             bodyColor: '#fff',
             padding: 12,
@@ -107,18 +86,18 @@ function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
         },
         scales: {
           x: {
-            grid: { color: 'rgba(26,20,16,.04)' },
-            ticks: { color: '#9A8E87', font: { size: 10 }, maxRotation: 40, autoSkip: true },
+            grid: { color: t.border },
+            ticks: { color: t.ink3, font: { size: 10 }, maxRotation: 40, autoSkip: true },
           },
           y: {
-            grid: { color: 'rgba(26,20,16,.04)' },
+            grid: { color: t.border },
             reverse: mode === 'pace',
-            ticks: { color: '#9A8E87', font: { size: 10 }, callback: tipFn },
+            ticks: { color: t.ink3, font: { size: 10 }, callback: tipFn },
           },
         },
       },
     })
-  }, [sharedRuns, mode, unit]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sharedRuns, mode, unit, t]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     return () => { if (chartRef.current) chartRef.current.destroy() }
@@ -185,10 +164,10 @@ export default function Compare() {
   // Find shared runs by event name (case-insensitive)
   const sharedRuns = (() => {
     if (!runsA || !runsB) return []
-    const mapB = new Map(runsB.map(r => [r.eventName.toLowerCase().trim(), r]))
+    const mapB = new Map(runsB.map(r => [eventSlug(r.eventName), r]))
     return runsA
-      .filter(r => mapB.has(r.eventName.toLowerCase().trim()))
-      .map(r => ({ runA: r, runB: mapB.get(r.eventName.toLowerCase().trim()) }))
+      .filter(r => mapB.has(eventSlug(r.eventName)))
+      .map(r => ({ runA: r, runB: mapB.get(eventSlug(r.eventName)) }))
       .sort((a, b) => a.runA.dateObj - b.runA.dateObj)
   })()
 
@@ -199,23 +178,12 @@ export default function Compare() {
 
   return (
     <>
-      <header className="hdr">
-        <div className="hdr-in">
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', flexWrap: 'wrap', flex: 1, justifyContent: 'space-between' }}>
-            <h1 className="logo">Ho<span>Run</span>Shio</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px' }}>
-              <Link to="/submit" className="nav-link primary" style={{ flexShrink: 0 }}>Submit a Run</Link>
-              <Link to="/admin" className="nav-link" style={{ flexShrink: 0 }}>Admin</Link>
-              <ThemeSelector />
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <RunnerSelector
         runners={runners}
         activeSlug={null}
-        onChange={() => navigate('/')}
+        onChange={slug => navigate(`/r/${slug}`)}
         compareActive={true}
         onCompare={() => {}}
       />
@@ -350,7 +318,7 @@ export default function Compare() {
             </div>
 
             {/* Mobile cards */}
-            <div className="log-cards" style={{ display: 'flex' }}>
+            <div className="log-cards">
               {sharedRuns.map(({ runA, runB }) => {
                 const diffSecs = runA.secs - runB.secs
                 const absDiff = Math.abs(diffSecs)
@@ -376,12 +344,12 @@ export default function Compare() {
                       <div>
                         <div className="lm-l" style={{ color: COLOR_A }}>{runnerA?.name}</div>
                         <div className="lm-v">{formatTime(runA.secs)}</div>
-                        <div style={{ fontSize: '11px', color: '#9A8E87', marginTop: '2px' }}>{paceDisplay(runA, unit)}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>{paceDisplay(runA, unit)}</div>
                       </div>
                       <div>
                         <div className="lm-l" style={{ color: COLOR_B }}>{runnerB?.name}</div>
                         <div className="lm-v">{formatTime(runB.secs)}</div>
-                        <div style={{ fontSize: '11px', color: '#9A8E87', marginTop: '2px' }}>{paceDisplay(runB, unit)}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>{paceDisplay(runB, unit)}</div>
                       </div>
                     </div>
                   </div>
