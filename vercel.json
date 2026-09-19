@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/share.js": { "includeFiles": "dist/index.html" }
+  },
   "rewrites": [
     { "source": "/r/:slug/:year(\\d{4})", "destination": "/api/share?slug=:slug&year=:year" },
     { "source": "/r/:slug", "destination": "/api/share?slug=:slug" },

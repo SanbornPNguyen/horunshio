@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 import { eq, and } from 'drizzle-orm'
 import { db, schema } from './_lib/db.js'
 import { processRuns, computeStats, yearReview, sortDistKeys, formatTime, eventSlug } from '../src/lib/utils.js'
@@ -54,9 +56,14 @@ export default async function handler(req, res) {
   const proto = req.headers['x-forwarded-proto'] || 'https'
   const origin = `${proto}://${req.headers.host}`
 
+  // Deployed: the built page is bundled with this function (vercel.json includeFiles).
+  // Fetching it over HTTP would hit Deployment Protection on previews.
+  // Local `vercel dev` has no build, so ask Vite for its transformed page instead.
   let html
   try {
-    html = await (await fetch(`${origin}/index.html`)).text()
+    html = /^(localhost|127\.0\.0\.1)(:|$)/.test(req.headers.host)
+      ? await (await fetch(`${origin}/index.html`)).text()
+      : await readFile(path.join(process.cwd(), 'dist', 'index.html'), 'utf8')
   } catch (err) {
     console.error(err)
     return res.status(502).end()
