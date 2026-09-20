@@ -101,7 +101,7 @@ export default function Home() {
       <main className="main">
         {loading && <div className="loading">Loading…</div>}
 
-        {!loading && locked && <LockedPanel name={activeRunner?.name} />}
+        {!loading && locked && <LockedPanel />}
 
         {!loading && !locked && runs.length === 0 && (
           <div className="empty-state">

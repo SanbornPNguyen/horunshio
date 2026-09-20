@@ -379,10 +379,8 @@ tbody tr,.lcard{animation:fadeUp .3s ease both}
 .locked-wrap{position:relative;margin-top:4px}
 .locked-blur{filter:blur(7px) grayscale(1);opacity:.5;pointer-events:none;user-select:none}
 .locked-overlay{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding-top:70px}
-.locked-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px 32px;text-align:center;max-width:340px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
+.locked-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:24px 40px;text-align:center;max-width:340px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
 .locked-icon{font-size:30px;line-height:1}
 .locked-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.06em;margin-top:8px;color:var(--ink)}
-.locked-text{font-size:14px;color:var(--ink2);margin-top:4px}
-.locked-sub{font-size:12px;color:var(--ink3);margin-top:12px}
 .lock-mark{font-size:11px;margin-left:5px;opacity:.65}
 @media(max-width:640px){.locked-overlay{padding-top:40px}.locked-card{padding:22px 20px;max-width:88%}}

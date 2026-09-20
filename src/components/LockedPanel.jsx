@@ -1,7 +1,7 @@
 // Easter egg: an admin can lock a runner's stats. The server withholds the
 // races entirely, so the blurred shapes behind this are placeholders — there
 // are no real numbers on the page to dig out.
-export default function LockedPanel({ name }) {
+export default function LockedPanel() {
   return (
     <div className="locked-wrap">
       <div className="locked-blur" aria-hidden="true">
@@ -30,10 +30,6 @@ export default function LockedPanel({ name }) {
         <div className="locked-card">
           <div className="locked-icon">🔒</div>
           <div className="locked-title">Locked</div>
-          <p className="locked-text">
-            {name ? `${name}'s` : 'These'} stats are private.
-          </p>
-          <div className="locked-sub">Contact management for access.</div>
         </div>
       </div>
     </div>

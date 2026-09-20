@@ -46,7 +46,7 @@ export default function YearReview() {
   }
 
   if (!runs) return <><Header /><div className="loading">Loading…</div></>
-  if (locked) return <><Header /><main className="main"><LockedPanel name={runner?.name} /></main></>
+  if (locked) return <><Header /><main className="main"><LockedPanel /></main></>
 
   const years = [...new Set(runs.map(r => r.year))].sort()
   const y = yearReview(runs, year)
