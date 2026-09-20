@@ -27,7 +27,8 @@ export default function Predict() {
   const [custom, setCustom] = useState('')
 
   useEffect(() => {
-    getRunners().then(list => {
+    getRunners().then(all => {
+      const list = all.filter(r => !r.locked)
       setRunners(list)
       if (list.length) setSlug(list[0].slug)
     }).catch(console.error)

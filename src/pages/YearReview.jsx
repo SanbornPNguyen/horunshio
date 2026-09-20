@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getRunners, getRuns } from '../lib/api.js'
 import { processRuns, yearReview, formatTime, formatPace, eventSlug } from '../lib/utils.js'
 import Header from '../components/Header.jsx'
+import LockedPanel from '../components/LockedPanel.jsx'
 
 const MONTHS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
@@ -19,12 +20,17 @@ export default function YearReview() {
   const [runner, setRunner] = useState(null)
   const [runs, setRuns] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [locked, setLocked] = useState(false)
 
   useEffect(() => {
     let stale = false
     setRuns(null)
     getRunners().then(list => { if (!stale) setRunner(list.find(r => r.slug === slug) || null) })
-    getRuns(slug).then(raw => { if (!stale) setRuns(processRuns(raw)) }).catch(() => setRuns([]))
+    getRuns(slug).then(raw => { if (!stale) setRuns(processRuns(raw)) }).catch(err => {
+      if (stale) return
+      if (err.message === 'Locked') setLocked(true)
+      setRuns([])
+    })
     return () => { stale = true }
   }, [slug])
 
@@ -40,6 +46,7 @@ export default function YearReview() {
   }
 
   if (!runs) return <><Header /><div className="loading">Loading…</div></>
+  if (locked) return <><Header /><main className="main"><LockedPanel name={runner?.name} /></main></>
 
   const years = [...new Set(runs.map(r => r.year))].sort()
   const y = yearReview(runs, year)

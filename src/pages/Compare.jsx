@@ -132,7 +132,8 @@ export default function Compare() {
   const [unit, setUnit] = useState('km')
 
   useEffect(() => {
-    getRunners().then(list => {
+    getRunners().then(all => {
+      const list = all.filter(r => !r.locked)
       setRunners(list)
       if (list.length >= 2) {
         setSlugA(list[0].slug)

@@ -7,6 +7,7 @@ export default async function handler(req, res) {
       id: schema.runners.id,
       name: schema.runners.name,
       slug: schema.runners.slug,
+      locked: schema.runners.locked,
     }).from(schema.runners).orderBy(schema.runners.name)
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
     res.json(list)

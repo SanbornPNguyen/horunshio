@@ -42,6 +42,7 @@ export async function getRuns(slug) {
   const cached = cacheGet(key)
   if (cached) return cached
   const res = await fetch(`${BASE}/runs?runner=${encodeURIComponent(slug)}`)
+  if (res.status === 403) throw new Error('Locked')
   if (!res.ok) throw new Error('Failed to fetch runs')
   const data = await res.json()
   cacheSet(key, data)
@@ -150,6 +151,15 @@ async function adminFetch(path, options, fallbackError) {
     throw new Error(err.error || fallbackError)
   }
   return res.status === 204 ? null : res.json()
+}
+
+export async function adminSetRunnerLock(id, locked) {
+  const runner = await adminFetch('/admin/runners', {
+    method: 'PATCH',
+    body: JSON.stringify({ id, locked }),
+  }, 'Failed to update runner')
+  cacheDel('runners', 'runs:')
+  return runner
 }
 
 export function adminGetRuns(runnerId) {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getPendingSubmissions, reviewSubmission, createRunner, getRunners, adminLogout, adminAddRun,
-  adminGetRuns, adminUpdateRun, adminDeleteRun,
+  adminGetRuns, adminUpdateRun, adminDeleteRun, adminSetRunnerLock,
 } from '../lib/api.js'
 import { formatTime, formatPace, formatDate, safeUrl, KMI } from '../lib/utils.js'
 import Header from '../components/Header.jsx'
@@ -10,13 +10,15 @@ import RunForm, { runToForm } from '../components/RunForm.jsx'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState('add-run')
+  // ?tab=runners deep-links a tab
+  const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'add-run')
   const [submissions, setSubmissions] = useState([])
   const [runners, setRunners] = useState([])
   const [loading, setLoading] = useState(true)
   const [reviewing, setReviewing] = useState({})
   const [newRunner, setNewRunner] = useState({ name: '', slug: '' })
   const [runnerError, setRunnerError] = useState('')
+  const [lockingId, setLockingId] = useState(null)
   const [runnerSuccess, setRunnerSuccess] = useState('')
 
   useEffect(() => {
@@ -60,6 +62,20 @@ export default function AdminDashboard() {
       setRunnerSuccess(`Runner "${runner.name}" created!`)
     } catch (err) {
       setRunnerError(err.message)
+    }
+  }
+
+  async function handleLock(runner) {
+    setLockingId(runner.id)
+    setRunnerError('')
+    try {
+      const updated = await adminSetRunnerLock(runner.id, !runner.locked)
+      setRunners(rs => rs.map(r => (r.id === runner.id ? updated : r)))
+    } catch (err) {
+      if (err.message === 'Unauthorized') navigate('/admin')
+      setRunnerError(err.message)
+    } finally {
+      setLockingId(null)
     }
   }
 
@@ -134,9 +150,19 @@ export default function AdminDashboard() {
             {runners.map(r => (
               <div key={r.id} className="submission-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{r.name}</div>
+                  <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                    {r.name}{r.locked && <span className="badge-rejected" style={{ marginLeft: '8px' }}>🔒 Locked</span>}
+                  </div>
                   <div style={{ fontSize: '12px', color: 'var(--ink3)', marginTop: '2px' }}>/{r.slug}</div>
                 </div>
+                <button
+                  className={r.locked ? 'btn-approve' : 'btn-secondary'}
+                  disabled={lockingId === r.id}
+                  onClick={() => handleLock(r)}
+                  title={r.locked ? 'Show these stats publicly again' : 'Hide this runner\'s stats from the public site'}
+                >
+                  {lockingId === r.id ? '…' : r.locked ? 'Unlock stats' : 'Lock stats'}
+                </button>
               </div>
             ))}
 

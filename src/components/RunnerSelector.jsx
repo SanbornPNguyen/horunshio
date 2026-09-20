@@ -9,7 +9,7 @@ export default function RunnerSelector({ runners, activeSlug, onChange, compareA
             className={`runner-tab${r.slug === activeSlug ? ' active' : ''}`}
             onClick={() => onChange(r.slug)}
           >
-            {r.name}
+            {r.name}{r.locked && <span className="lock-mark" title="Stats locked">🔒</span>}
           </button>
         ))}
         {onCompare && (

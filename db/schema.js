@@ -1,9 +1,11 @@
-import { pgTable, serial, varchar, integer, numeric, text, timestamp, date } from 'drizzle-orm/pg-core'
+import { pgTable, serial, varchar, integer, numeric, text, timestamp, date, boolean } from 'drizzle-orm/pg-core'
 
 export const runners = pgTable('runners', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull().unique(),
+  // Easter egg: hide this runner's stats from the public site
+  locked: boolean('locked').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 })
 

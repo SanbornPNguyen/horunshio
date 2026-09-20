@@ -13,6 +13,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 async function runnerMeta(slug, year) {
   const runner = await db.query.runners.findFirst({ where: eq(schema.runners.slug, slug) })
   if (!runner) return null
+  if (runner.locked) {
+    return { title: `${runner.name} · HoRunShio`, description: 'These stats are locked.' }
+  }
   const raw = await db.select().from(schema.runs)
     .where(and(eq(schema.runs.runnerId, runner.id), eq(schema.runs.status, 'approved')))
   const runs = processRuns(raw)
@@ -37,11 +40,11 @@ async function runnerMeta(slug, year) {
 
 async function eventMeta(slug) {
   const rows = await db
-    .select({ run: schema.runs, name: schema.runners.name })
+    .select({ run: schema.runs, name: schema.runners.name, locked: schema.runners.locked })
     .from(schema.runs)
     .innerJoin(schema.runners, eq(schema.runs.runnerId, schema.runners.id))
     .where(eq(schema.runs.status, 'approved'))
-  const entries = rows.filter(r => eventSlug(r.run.eventName) === slug)
+  const entries = rows.filter(r => eventSlug(r.run.eventName) === slug && !r.locked)
     .sort((a, b) => a.run.timeSeconds - b.run.timeSeconds)
   if (!entries.length) return null
   return {

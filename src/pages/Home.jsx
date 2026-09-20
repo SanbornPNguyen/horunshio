@@ -11,12 +11,14 @@ import RacePanel from '../components/RacePanel.jsx'
 import RaceTable from '../components/RaceTable.jsx'
 import MobileCards from '../components/MobileCards.jsx'
 import Header from '../components/Header.jsx'
+import LockedPanel from '../components/LockedPanel.jsx'
 
 export default function Home() {
   const navigate = useNavigate()
   const { slug } = useParams()
   const [runners, setRunners] = useState([])
   const [notFound, setNotFound] = useState(false)
+  const [locked, setLocked] = useState(false)
   const [runs, setRuns] = useState([])
   const [selIdx, setSelIdx] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -37,6 +39,7 @@ export default function Home() {
     let stale = false // ignore responses for a runner we've already switched away from
     setLoading(true)
     setNotFound(false)
+    setLocked(false)
     setSelIdx(null)
     setFilterYear(null)
     setFilterDist(null)
@@ -46,9 +49,9 @@ export default function Home() {
       setLoading(false)
     }).catch(err => {
       if (stale) return
-      console.error(err)
       setRuns([])
-      setNotFound(true)
+      if (err.message === 'Locked') setLocked(true)
+      else { console.error(err); setNotFound(true) }
       setLoading(false)
     })
     return () => { stale = true }
@@ -71,6 +74,8 @@ export default function Home() {
     setSelIdx(null)
   }
 
+  const activeRunner = runners.find(r => r.slug === activeSlug)
+
   // All-time stats and PRs always use the full runs list
   const stats = computeStats(runs)
 
@@ -81,7 +86,6 @@ export default function Home() {
     return true
   })
 
-  const activeRunner = runners.find(r => r.slug === activeSlug)
 
   return (
     <>
@@ -97,13 +101,15 @@ export default function Home() {
       <main className="main">
         {loading && <div className="loading">Loading…</div>}
 
-        {!loading && runs.length === 0 && (
+        {!loading && locked && <LockedPanel name={activeRunner?.name} />}
+
+        {!loading && !locked && runs.length === 0 && (
           <div className="empty-state">
             <p>{notFound ? 'Runner not found.' : 'No runs yet for this runner.'}</p>
           </div>
         )}
 
-        {!loading && runs.length > 0 && (
+        {!loading && !locked && runs.length > 0 && (
           <>
             {/* ── Stats ─────────────────────────────────────────── */}
             <StatsHeader stats={stats} unit={unit} />
