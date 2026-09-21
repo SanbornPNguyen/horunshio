@@ -58,6 +58,18 @@ export function chartFormatter(mode, unit) {
   return v => formatTime(Math.round(v * 3600))
 }
 
+// ── Units ───────────────────────────────────────────────────────────────
+// Everything is stored in km and sec/km; convert only at display time.
+
+export const distIn = (km, unit) => unit === 'mi' ? km * KMI : km
+export const paceIn = (secPerKm, unit) => unit === 'mi' ? secPerKm / KMI : secPerKm
+export const paceOf = (run, unit) => paceIn(run.paceKm, unit)
+
+// Distance: "10 km", "21.1 km", "6.2 mi"
+export function fmtDist(km, unit, digits = 1) {
+  return `${+distIn(km, unit).toFixed(digits)} ${unit}`
+}
+
 // Format seconds to "M:SS" pace
 export function formatPace(s) {
   const m = Math.floor(s / 60)

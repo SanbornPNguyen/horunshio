@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { parseTimeStr, formatTime } from '../lib/utils.js'
+import { parseTimeStr, formatTime, distIn } from '../lib/utils.js'
+import { useUnit } from '../hooks/useUnit.js'
 
 const EMPTY = { runnerId: '', eventName: '', date: '', km: '', timeStr: '', link: '', status: 'approved' }
 
@@ -10,6 +11,7 @@ export function runToForm(run) {
     eventName: run.eventName,
     date: run.date.split('T')[0],
     km: String(parseFloat(run.km)),
+    distUnit: 'km', // stored runs are in km; edit in km so nothing gets rounded
     timeStr: formatTime(run.timeSeconds),
     link: run.link || '',
     status: run.status,
@@ -22,7 +24,8 @@ export default function RunForm({
   runners, initial, onSubmit, submitLabel, busyLabel,
   requireLink = false, showStatus = false, resetOnSuccess = false, onCancel,
 }) {
-  const [form, setForm] = useState(initial || EMPTY)
+  const siteUnit = useUnit()
+  const [form, setForm] = useState(initial || { ...EMPTY, distUnit: siteUnit })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -47,12 +50,13 @@ export default function RunForm({
         runnerId: form.runnerId,
         eventName: form.eventName.trim(),
         date: form.date,
-        km: parseFloat(form.km),
+        // DB keeps km with 2 decimals
+        km: Math.round((parseFloat(form.km) / distIn(1, form.distUnit)) * 100) / 100,
         timeSeconds,
         link: form.link.trim() || null,
         ...(showStatus && { status: form.status }),
       })
-      if (resetOnSuccess) setForm(f => ({ ...EMPTY, runnerId: f.runnerId }))
+      if (resetOnSuccess) setForm(f => ({ ...EMPTY, runnerId: f.runnerId, distUnit: f.distUnit }))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -95,9 +99,16 @@ export default function RunForm({
           <input type="date" value={form.date} onChange={e => set('date', e.target.value)} required />
         </div>
         <div className="field">
-          <label>Distance (km)</label>
-          <input type="number" step="0.01" min="0.1" max="500" placeholder="10.0"
-            value={form.km} onChange={e => set('km', e.target.value)} required />
+          <label>Distance</label>
+          <div className="dist-input">
+            <input type="number" step="0.01" min="0.1" max={form.distUnit === 'mi' ? 310 : 500}
+              placeholder={form.distUnit === 'mi' ? '6.2' : '10.0'}
+              value={form.km} onChange={e => set('km', e.target.value)} required />
+            <select value={form.distUnit} onChange={e => set('distUnit', e.target.value)} aria-label="Distance unit">
+              <option value="km">km</option>
+              <option value="mi">mi</option>
+            </select>
+          </div>
         </div>
       </div>
 

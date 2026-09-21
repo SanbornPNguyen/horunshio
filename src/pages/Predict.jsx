@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { getRunners, getRuns } from '../lib/api.js'
 import {
-  processRuns, computeStats, predictTime, formatTime, formatPace, STD_DISTANCES, KMI,
+  processRuns, computeStats, predictTime, formatTime, formatPace, fmtDist, distIn, paceIn, STD_DISTANCES,
 } from '../lib/utils.js'
 import Header from '../components/Header.jsx'
+import { useUnit } from '../hooks/useUnit.js'
+
 
 // Race whose performance predicts the fastest 10K — i.e. the best race,
 // normalised for distance. Looks at the last 12 months of racing first.
@@ -23,7 +25,7 @@ export default function Predict() {
   const [runs, setRuns] = useState(null)
   const [baseId, setBaseId] = useState('auto')
   const [exponent, setExponent] = useState(1.06)
-  const [unit, setUnit] = useState('km')
+  const unit = useUnit()
   const [custom, setCustom] = useState('')
 
   useEffect(() => {
@@ -49,13 +51,11 @@ export default function Predict() {
   const prs = runs ? computeStats(runs).prs : {}
 
   // Custom distance is typed in the selected unit
-  const customKm = parseFloat(custom) > 0 ? (unit === 'mi' ? parseFloat(custom) / KMI : parseFloat(custom)) : null
+  const customKm = parseFloat(custom) > 0 ? parseFloat(custom) / distIn(1, unit) : null
   const targets = [
     ...STD_DISTANCES,
     ...(customKm ? [{ label: `${custom} ${unit}`, km: customKm, custom: true }] : []),
   ]
-
-  const fmtDist = km => unit === 'mi' ? `${(km * KMI).toFixed(2)} mi` : `${+km.toFixed(2)} km`
 
   return (
     <>
@@ -65,10 +65,6 @@ export default function Predict() {
           <div>
             <h2 className="page-title">Race Predictor</h2>
             <div className="page-sub">Estimates finish times at other distances from a race you've run (Riegel formula).</div>
-          </div>
-          <div className="ugrp">
-            <button className={`ubtn${unit === 'km' ? ' on' : ''}`} onClick={() => setUnit('km')}>km</button>
-            <button className={`ubtn${unit === 'mi' ? ' on' : ''}`} onClick={() => setUnit('mi')}>mi</button>
           </div>
         </div>
 
@@ -107,12 +103,12 @@ export default function Predict() {
         {base && (
           <>
             <p className="pred-base">
-              Based on <strong>{base.eventName}</strong> ({base.displayDate}): {fmtDist(base.km)} in {formatTime(base.secs)}
+              Based on <strong>{base.eventName}</strong> ({base.displayDate}): {fmtDist(base.km, unit, 2)} in {formatTime(base.secs)}
             </p>
             <div className="pred-grid">
               {targets.map(t => {
                 const secs = predictTime(base.secs, base.km, t.km, exponent)
-                const pace = unit === 'mi' ? secs / (t.km * KMI) : secs / t.km
+                const pace = paceIn(secs / t.km, unit)
                 const pr = !t.custom && prs[t.label]
                 const diff = pr ? secs - pr.secs : null
                 const far = Math.max(t.km / base.km, base.km / t.km) > 4

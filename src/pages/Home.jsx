@@ -24,7 +24,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [filterYear, setFilterYear] = useState(null)
   const [filterDist, setFilterDist] = useState(null)
-  const [unit, setUnit] = useState('km')
   const chartRef = useRef(null)
 
   useEffect(() => {
@@ -112,10 +111,10 @@ export default function Home() {
         {!loading && !locked && runs.length > 0 && (
           <>
             {/* ── Stats ─────────────────────────────────────────── */}
-            <StatsHeader stats={stats} unit={unit} />
+            <StatsHeader stats={stats} />
 
             {/* ── Personal Records ──────────────────────────────── */}
-            <PRCards prs={stats.prs} unit={unit} />
+            <PRCards prs={stats.prs} />
 
             {/* ── Filters ───────────────────────────────────────── */}
             <FilterBar
@@ -162,8 +161,6 @@ export default function Home() {
                     selIdx={selIdx}
                     onSelect={handleSelect}
                     onClose={() => setSelIdx(null)}
-                    unit={unit}
-                    onUnitChange={setUnit}
                   />
                 </div>
 
@@ -172,21 +169,18 @@ export default function Home() {
                   selIdx={selIdx}
                   onClose={() => setSelIdx(null)}
                   onNavigate={handleSelect}
-                  unit={unit}
                 />
 
                 <RaceTable
                   runs={displayedRuns}
                   selIdx={selIdx}
                   onSelect={handleSelect}
-                  unit={unit}
                 />
 
                 <MobileCards
                   runs={displayedRuns}
                   selIdx={selIdx}
                   onSelect={handleSelect}
-                  unit={unit}
                 />
               </>
             )}

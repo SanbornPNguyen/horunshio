@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Chart, registerables } from 'chart.js'
 import { getRunners, getRuns } from '../lib/api.js'
-import { processRuns, formatTime, formatPace, eventSlug, chartFormatter } from '../lib/utils.js'
+import { processRuns, formatTime, formatPace, paceOf, fmtDist, eventSlug, chartFormatter } from '../lib/utils.js'
+import { useUnit } from '../hooks/useUnit.js'
+
 import { useThemeColors, alpha } from '../hooks/useTheme.js'
 import RunnerSelector from '../components/RunnerSelector.jsx'
 import Header from '../components/Header.jsx'
@@ -27,7 +29,7 @@ function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
     const tipFn = chartFormatter(mode, unit)
 
     function getValue(run) {
-      if (mode === 'pace') return unit === 'km' ? run.paceKm / 60 : run.paceMi / 60
+      if (mode === 'pace') return paceOf(run, unit) / 60
       return run.secs / 3600
     }
 
@@ -115,8 +117,7 @@ function CompareChart({ sharedRuns, runnerA, runnerB, mode, unit }) {
 }
 
 function paceDisplay(run, unit) {
-  const pace = unit === 'km' ? run.paceKm : run.paceMi
-  return formatPace(pace) + ' /' + unit
+  return `${formatPace(paceOf(run, unit))} /${unit}`
 }
 
 export default function Compare() {
@@ -129,7 +130,7 @@ export default function Compare() {
   const [loadingA, setLoadingA] = useState(false)
   const [loadingB, setLoadingB] = useState(false)
   const [mode, setMode] = useState('pace')
-  const [unit, setUnit] = useState('km')
+  const unit = useUnit()
 
   useEffect(() => {
     getRunners().then(all => {
@@ -195,11 +196,6 @@ export default function Compare() {
           <div className="ctrls">
             <button className={`pbtn${mode === 'pace' ? ' on' : ''}`} onClick={() => setMode('pace')}>Pace</button>
             <button className={`pbtn${mode === 'duration' ? ' on' : ''}`} onClick={() => setMode('duration')}>Duration</button>
-            <div className="vdiv" />
-            <div className="ugrp">
-              <button className={`ubtn${unit === 'km' ? ' on' : ''}`} onClick={() => setUnit('km')}>km</button>
-              <button className={`ubtn${unit === 'mi' ? ' on' : ''}`} onClick={() => setUnit('mi')}>mi</button>
-            </div>
           </div>
         </div>
 
@@ -296,7 +292,7 @@ export default function Compare() {
                       <tr key={runA.id}>
                         <td>
                           <div className="ename">{runA.eventName}</div>
-                          <div className="muted" style={{ fontSize: '11px', marginTop: '2px' }}>{runA.displayDate} · {runA.km}km</div>
+                          <div className="muted" style={{ fontSize: '11px', marginTop: '2px' }}>{runA.displayDate} · {fmtDist(runA.km, unit)}</div>
                         </td>
                         <td className={faster === 'a' ? 'compare-winner' : ''}>{formatTime(runA.secs)}</td>
                         <td className="r mono muted">{paceDisplay(runA, unit)}</td>
@@ -333,7 +329,7 @@ export default function Compare() {
                     <div className="lcard-top">
                       <div>
                         <div className="lcard-name">{runA.eventName}</div>
-                        <div className="lcard-date">{runA.displayDate} · {runA.km}km</div>
+                        <div className="lcard-date">{runA.displayDate} · {fmtDist(runA.km, unit)}</div>
                       </div>
                       {faster !== null && (
                         <span className={`delta ${faster === 'a' ? 'faster' : 'slower'}`}>

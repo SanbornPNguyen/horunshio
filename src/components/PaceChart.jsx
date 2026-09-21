@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chart, registerables } from 'chart.js'
 import { useThemeColors, alpha } from '../hooks/useTheme.js'
-import { getDelta, chartFormatter } from '../lib/utils.js'
+import { getDelta, chartFormatter, paceOf, fmtDist } from '../lib/utils.js'
+import { useUnit } from '../hooks/useUnit.js'
+
 
 Chart.register(...registerables)
 
@@ -152,7 +154,8 @@ function linearTrend(data) {
   return data.map((_, i) => +(slope * i + intercept).toFixed(5))
 }
 
-export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUnitChange }) {
+export default function PaceChart({ runs, selIdx, onSelect, onClose }) {
+  const unit = useUnit()
   const canvasRef = useRef(null)
   const chartRef = useRef(null)
   const [mode, setMode] = useState('pace')
@@ -169,7 +172,7 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
       r.eventName.replace(/(\d{4})/, "'$1").split(' ').slice(0, 3).join(' ')
     )
     const data = mode === 'pace'
-      ? runs.map(r => unit === 'km' ? r.paceKm / 60 : r.paceMi / 60)
+      ? runs.map(r => paceOf(r, unit) / 60)
       : runs.map(r => r.secs / 3600)
 
     const tipFn = chartFormatter(mode, unit)
@@ -252,7 +255,7 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
               afterLabel: c => {
                 const r = runs[c.dataIndex]
                 const delta = getDelta(r, unit)
-                const distStr = unit === 'mi' ? `${r.mi.toFixed(1)}mi` : `${r.km}km`
+                const distStr = fmtDist(r.km, unit)
                 return `${distStr} · ${r.displayDate}` + (delta ? ` · ${delta.label}` : '')
               },
             },
@@ -312,11 +315,6 @@ export default function PaceChart({ runs, selIdx, onSelect, onClose, unit, onUni
         <div className="ctrls">
           <button className={`pbtn${mode === 'pace' ? ' on' : ''}`} onClick={() => setMode('pace')}>Pace</button>
           <button className={`pbtn${mode === 'duration' ? ' on' : ''}`} onClick={() => setMode('duration')}>Duration</button>
-          <div className="vdiv" />
-          <div className="ugrp">
-            <button className={`ubtn${unit === 'km' ? ' on' : ''}`} onClick={() => onUnitChange('km')}>km</button>
-            <button className={`ubtn${unit === 'mi' ? ' on' : ''}`} onClick={() => onUnitChange('mi')}>mi</button>
-          </div>
           <div className="vdiv" />
           <button
             className={`pbtn${showTrend ? ' on' : ''}`}

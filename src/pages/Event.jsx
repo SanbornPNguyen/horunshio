@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getAllRuns } from '../lib/api.js'
-import { formatTime, formatPace, sortDistKeys, safeUrl } from '../lib/utils.js'
+import { formatTime, formatPace, paceOf, sortDistKeys, safeUrl } from '../lib/utils.js'
+import { useUnit } from '../hooks/useUnit.js'
+
 import { processAll } from '../lib/events.js'
 import Header from '../components/Header.jsx'
 
@@ -10,7 +12,7 @@ const MEDALS = ['🥇', '🥈', '🥉']
 export default function Event() {
   const { event } = useParams()
   const [entries, setEntries] = useState(null)
-  const [unit, setUnit] = useState('km')
+  const unit = useUnit()
 
   useEffect(() => {
     setEntries(null)
@@ -51,10 +53,6 @@ export default function Event() {
               {multiDate ? 'Multiple dates' : entries[0].displayDate} · {entries.length} finisher{entries.length !== 1 && 's'}
             </div>
           </div>
-          <div className="ugrp">
-            <button className={`ubtn${unit === 'km' ? ' on' : ''}`} onClick={() => setUnit('km')}>km</button>
-            <button className={`ubtn${unit === 'mi' ? ' on' : ''}`} onClick={() => setUnit('mi')}>mi</button>
-          </div>
         </div>
 
         {distKeys.map(dist => {
@@ -88,7 +86,7 @@ export default function Event() {
                         </td>
                         {multiDate && <td className="muted">{r.displayDate}</td>}
                         <td className="mono r">{formatTime(r.secs)}</td>
-                        <td className="mono r">{formatPace(unit === 'mi' ? r.paceMi : r.paceKm)}</td>
+                        <td className="mono r">{formatPace(paceOf(r, unit))}</td>
                         <td className="mono r muted">{i === 0 ? '—' : `+${formatTime(r.secs - lead)}`}</td>
                       </tr>
                     ))}

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getRunners, getRuns } from '../lib/api.js'
-import { processRuns, yearReview, formatTime, formatPace, eventSlug } from '../lib/utils.js'
+import { processRuns, yearReview, formatTime, formatPace, fmtDist, distIn, paceIn, eventSlug } from '../lib/utils.js'
 import Header from '../components/Header.jsx'
 import LockedPanel from '../components/LockedPanel.jsx'
+import { useUnit } from '../hooks/useUnit.js'
+
 
 const MONTHS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
@@ -21,6 +23,7 @@ export default function YearReview() {
   const [runs, setRuns] = useState(null)
   const [copied, setCopied] = useState(false)
   const [locked, setLocked] = useState(false)
+  const unit = useUnit()
 
   useEffect(() => {
     let stale = false
@@ -91,9 +94,9 @@ export default function YearReview() {
             <Change now={y.count} before={y.prevCount} />
           </div>
           <div className="stat-card">
-            <div className="stat-val">{y.km.toFixed(1)}<em>km</em></div>
+            <div className="stat-val">{distIn(y.km, unit).toFixed(1)}<em>{unit}</em></div>
             <div className="stat-lbl">Distance</div>
-            <Change now={y.km} before={y.prevKm} fmt={v => `${v.toFixed(1)} km`} />
+            <Change now={y.km} before={y.prevKm} fmt={v => fmtDist(v, unit)} />
           </div>
           <div className="stat-card">
             <div className="stat-val">{Math.floor(y.secs / 3600)}<em>h {Math.floor((y.secs % 3600) / 60)}m</em></div>
@@ -121,7 +124,7 @@ export default function YearReview() {
           {y.fastest && (
             <div className="pr-card">
               <div className="pr-card-dist">⚡ Fastest pace</div>
-              <div className="pr-card-time">{formatPace(y.fastest.paceKm)}<span className="rv-unit">/km</span></div>
+              <div className="pr-card-time">{formatPace(paceIn(y.fastest.paceKm, unit))}<span className="rv-unit">/{unit}</span></div>
               <div className="pr-card-event">{y.fastest.eventName}</div>
               <div className="pr-card-date">{y.fastest.distKey} · {formatTime(y.fastest.secs)}</div>
             </div>
@@ -129,7 +132,7 @@ export default function YearReview() {
           {y.mostImproved && (
             <div className="pr-card">
               <div className="pr-card-dist">📈 Biggest improvement</div>
-              <div className="pr-card-time">−{formatPace(y.mostImproved.gain)}<span className="rv-unit">/km</span></div>
+              <div className="pr-card-time">−{formatPace(paceIn(y.mostImproved.gain, unit))}<span className="rv-unit">/{unit}</span></div>
               <div className="pr-card-event">{y.mostImproved.run.eventName}</div>
               <div className="pr-card-date">vs {y.mostImproved.run.prev.eventName}</div>
             </div>

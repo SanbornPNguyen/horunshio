@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { formatTime, formatPace, getDelta } from '../lib/utils.js'
+import { formatTime, formatPace, paceOf, getDelta } from '../lib/utils.js'
+import { useUnit } from '../hooks/useUnit.js'
+
 
 function Highlight({ text, query }) {
   if (!query.trim()) return text
@@ -14,7 +16,8 @@ function Highlight({ text, query }) {
   )
 }
 
-export default function RaceTable({ runs, selIdx, onSelect, unit = 'km' }) {
+export default function RaceTable({ runs, selIdx, onSelect }) {
+  const unit = useUnit()
   const [sortCol, setSortCol] = useState('date')
   const [sortAsc, setSortAsc] = useState(false)
   const [search, setSearch] = useState('')
@@ -88,7 +91,7 @@ export default function RaceTable({ runs, selIdx, onSelect, unit = 'km' }) {
             {displayed.map((run, i) => {
               const idx = runs.indexOf(run)
               const delta = getDelta(run, unit)
-              const pace = unit === 'mi' ? run.paceMi : run.paceKm
+              const pace = paceOf(run, unit)
               return (
                 <tr
                   key={run.id}

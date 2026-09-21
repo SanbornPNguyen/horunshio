@@ -1,7 +1,7 @@
 // Run with: npm test
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseTimeStr, distKey, eventSlug, safeUrl, predictTime, processRuns, yearReview } from './utils.js'
+import { parseTimeStr, distKey, eventSlug, safeUrl, predictTime, processRuns, yearReview, distIn, paceIn, fmtDist, formatPace } from './utils.js'
 
 test('parseTimeStr handles H:MM:SS and MM:SS', () => {
   assert.equal(parseTimeStr('1:26:01'), 5161)
@@ -40,4 +40,17 @@ test('PRs group 10.0 and 10.02 km together; wasPR tracks PRs at the time', () =>
   assert.equal(y.count, 2)
   assert.equal(y.prsSet.length, 1)
   assert.equal(y.mostImproved.run.id, 2)
+})
+
+test('unit helpers convert km <-> mi consistently', () => {
+  assert.equal(fmtDist(10, 'km'), '10 km')
+  assert.equal(fmtDist(21.0975, 'km'), '21.1 km')
+  assert.equal(fmtDist(10, 'mi'), '6.2 mi')
+  assert.equal(fmtDist(21.0975, 'mi'), '13.1 mi')
+  // 8:36 /km is 13:50 /mi
+  assert.equal(formatPace(paceIn(516, 'km')), '8:36')
+  assert.equal(formatPace(paceIn(516, 'mi')), '13:50')
+  // round trip used by the run form: 6.2 mi entered -> km stored
+  assert.equal(Math.round((6.2 / distIn(1, 'mi')) * 100) / 100, 9.98)
+  assert.equal(distKey(9.98), '10K')
 })

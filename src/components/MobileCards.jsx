@@ -1,6 +1,9 @@
-import { formatTime, formatPace, getDelta } from '../lib/utils.js'
+import { formatTime, formatPace, paceOf, getDelta } from '../lib/utils.js'
+import { useUnit } from '../hooks/useUnit.js'
 
-export default function MobileCards({ runs, selIdx, onSelect, unit = 'km' }) {
+
+export default function MobileCards({ runs, selIdx, onSelect }) {
+  const unit = useUnit()
   const sorted = [...runs].sort((a, b) => b.dateObj - a.dateObj)
 
   return (
@@ -8,7 +11,7 @@ export default function MobileCards({ runs, selIdx, onSelect, unit = 'km' }) {
       {sorted.map((run, i) => {
         const idx = runs.indexOf(run)
         const delta = getDelta(run, unit)
-        const pace = unit === 'mi' ? run.paceMi : run.paceKm
+        const pace = paceOf(run, unit)
         return (
           <div
             key={run.id}

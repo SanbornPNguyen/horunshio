@@ -1,15 +1,18 @@
 import { Link } from 'react-router-dom'
-import { formatTime, formatPace, getDelta, safeUrl, eventSlug } from '../lib/utils.js'
+import { formatTime, formatPace, paceOf, fmtDist, getDelta, safeUrl, eventSlug } from '../lib/utils.js'
+import { useUnit } from '../hooks/useUnit.js'
 
-export default function RacePanel({ runs, selIdx, onClose, onNavigate, unit = 'km' }) {
+
+export default function RacePanel({ runs, selIdx, onClose, onNavigate }) {
+  const unit = useUnit()
   if (selIdx === null || selIdx === undefined) return <div className="race-panel" />
 
   const run = runs[selIdx]
   if (!run) return <div className="race-panel" />
 
   const delta = getDelta(run, unit)
-  const pace = unit === 'mi' ? run.paceMi : run.paceKm
-  const distStr = unit === 'mi' ? `${run.mi.toFixed(1)}mi` : `${run.km}km`
+  const pace = paceOf(run, unit)
+  const distStr = fmtDist(run.km, unit)
 
   return (
     <div className="race-panel show">
@@ -23,7 +26,7 @@ export default function RacePanel({ runs, selIdx, onClose, onNavigate, unit = 'k
           </div>
           <div className="rp-m">
             <div className="rp-mv">{formatPace(pace)}</div>
-            <div className="rp-ml">min/{unit}</div>
+            <div className="rp-ml">Pace /{unit}</div>
           </div>
           {delta && (
             <span className={`rp-delta ${delta.cls}`}>{delta.label}</span>
