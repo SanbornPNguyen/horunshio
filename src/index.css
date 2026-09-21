@@ -183,6 +183,8 @@ tbody tr,.lcard{animation:fadeUp .3s ease both}
 .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--input-bg);outline:none;transition:border-color .12s}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--orange)}
 .dist-input{display:flex;gap:6px}
+.dist-quick{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.dist-quick .filter-pill{font-size:11px;padding:3px 10px}
 .dist-input input{flex:1;min-width:0}
 .field .dist-input select{width:auto;flex:none}
 .field .hint{font-size:11px;color:var(--ink3);margin-top:5px}

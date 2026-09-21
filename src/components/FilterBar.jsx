@@ -1,4 +1,4 @@
-const DIST_ORDER = ['5K', '10K', '15K', 'Half', 'Full']
+import { sortDistKeys } from '../lib/utils.js'
 
 export default function FilterBar({ runs, filterYear, filterDist, onYearChange, onDistChange }) {
   // Build year map with counts, sorted descending
@@ -8,7 +8,7 @@ export default function FilterBar({ runs, filterYear, filterDist, onYearChange, 
 
   // Build available distance labels
   const distSet = new Set(runs.map(r => r.distLabel))
-  const dists = DIST_ORDER.filter(d => distSet.has(d))
+  const dists = sortDistKeys(distSet)
 
   if (!years.length) return null
 

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { parseTimeStr, formatTime, distIn } from '../lib/utils.js'
+import { parseTimeStr, formatTime, distIn, STD_DISTANCES } from '../lib/utils.js'
 import { useUnit } from '../hooks/useUnit.js'
+
+const QUICK = ['5K', '10K', '5 Mile', '10 Mile', 'Half', 'Marathon']
+  .map(label => STD_DISTANCES.find(d => d.label === label))
 
 const EMPTY = { runnerId: '', eventName: '', date: '', km: '', timeStr: '', link: '', status: 'approved' }
 
@@ -108,6 +111,14 @@ export default function RunForm({
               <option value="km">km</option>
               <option value="mi">mi</option>
             </select>
+          </div>
+          <div className="dist-quick">
+            {QUICK.map(d => (
+              <button key={d.label} type="button" className="filter-pill"
+                onClick={() => set('km', String(+distIn(d.km, form.distUnit).toFixed(2)))}>
+                {d.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>

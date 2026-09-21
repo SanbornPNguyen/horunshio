@@ -1,13 +1,5 @@
 export const KMI = 0.621371
 
-export function getDistLabel(km) {
-  if (km <= 6) return '5K'
-  if (km <= 12) return '10K'
-  if (km <= 17) return '15K'
-  if (km <= 25) return 'Half'
-  return 'Full'
-}
-
 export function getDistClass(km) {
   if (km <= 6) return 'd5k'
   if (km <= 12) return 'd10'
@@ -16,20 +8,28 @@ export function getDistClass(km) {
   return 'dfull'
 }
 
-// Standard race distances in km. Anything within 3% snaps to one of these so
-// 10.0 and 10.02 (or 21.1 and 21.0975) count as the same distance for PRs.
+// Standard race distances in km. A race within 3% of one snaps to the
+// nearest, so 10.0 / 10.02 km, or 6.2 mi entered as 9.98 km, all count as 10K.
+// Nearest (not first) match matters: 8K and 5 Mile are only 0.6% apart.
 export const STD_DISTANCES = [
+  { label: '1 Mile', km: 1.609344 },
   { label: '5K', km: 5 },
+  { label: '8K', km: 8 },
+  { label: '5 Mile', km: 8.04672 },
   { label: '10K', km: 10 },
   { label: '15K', km: 15 },
-  { label: '10 Mile', km: 16.0934 },
+  { label: '10 Mile', km: 16.09344 },
   { label: 'Half', km: 21.0975 },
   { label: 'Marathon', km: 42.195 },
 ]
 
 export function distKey(km) {
-  const std = STD_DISTANCES.find(d => Math.abs(km - d.km) / d.km <= 0.03)
-  return std ? std.label : `${Math.round(km * 10) / 10}km`
+  let best = null, bestErr = 0.03
+  for (const d of STD_DISTANCES) {
+    const err = Math.abs(km - d.km) / d.km
+    if (err <= bestErr) { best = d; bestErr = err }
+  }
+  return best ? best.label : `${Math.round(km * 10) / 10}km`
 }
 
 // "Turkey Trot 2025" -> "turkey-trot-2025"; groups the same event across runners
@@ -121,7 +121,7 @@ export function processRuns(rawRuns) {
       dateObj: new Date(y, mo - 1, d),
       paceKm: secs / km,
       paceMi: secs / mi,
-      distLabel: getDistLabel(km),
+      distLabel: distKey(km),
       distClass: getDistClass(km),
     }
   }).sort((a, b) => a.dateObj - b.dateObj)

@@ -12,7 +12,12 @@ test('distKey snaps near-standard distances', () => {
   assert.equal(distKey(10), '10K')
   assert.equal(distKey(10.02), '10K')
   assert.equal(distKey(21.1), 'Half')
-  assert.equal(distKey(8), '8km')
+  assert.equal(distKey(7), '7km')
+  // 8K and 5 Mile are 0.6% apart: must pick the nearest, not the first
+  assert.equal(distKey(8), '8K')
+  assert.equal(distKey(8.05), '5 Mile')   // 5 mi entered in miles, stored to 2dp
+  assert.equal(distKey(16.09), '10 Mile')
+  assert.equal(distKey(42.2), 'Marathon')
 })
 
 test('eventSlug and safeUrl', () => {
